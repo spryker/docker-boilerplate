@@ -24,6 +24,16 @@
         try_files $fastcgi_script_name @proxy;
     }
 
+    location ~ ^/(php-fpm-status-worker)$ {
+        include fastcgi.conf;
+        allow 127.0.0.1;
+        allow ${ALLOWED_IP};
+        deny all;
+        access_log off;
+        set $upstream "{{ upstream }}";
+        fastcgi_pass "$upstream";
+    }
+
 {% include "nginx/http/proxy/reverse-proxy.conf.twig" with _context %}
 
     location @proxy {
