@@ -1,0 +1,9 @@
+{% for projectName, projectData in projectsData%}
+x-{{ projectName }}-volumes:
+  &{{ projectName }}-volumes
+  volumes:
+{% include "docker-compose/components/application-volumes.yml.twig" with {
+    projectName: projectName,
+    projectData: projectData,
+} %}
+{% endfor %}

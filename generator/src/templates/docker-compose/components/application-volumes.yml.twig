@@ -1,0 +1,9 @@
+      - {{ projectName }}_logs:${SPRYKER_LOG_DIRECTORY}:rw
+{# todo: SPRYKER_LOG_DIRECTORY should be changed #}
+{% if projectData._mountMode != 'baked' %}
+{% if projectData._mountMode == 'native' %}
+      - {{ projectData.project_path }}:/data
+{% else %}
+      - {{ projectName }}_data_sync:/data:nocopy
+{% endif %}
+{% endif %}

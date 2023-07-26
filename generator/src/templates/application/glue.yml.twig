@@ -1,13 +1,14 @@
-  {{ applicationName | lower }}:
-    image: ${SPRYKER_DOCKER_PREFIX}_run_app:${SPRYKER_DOCKER_TAG}-{{ applicationName | lower }}
+  {{ projectName }}_{{ applicationName | lower }}:
+    image: {{ projectName }}_run_app:{{ project.tag }}-{{ applicationName | lower }}
+    container_name: {{ projectName }}_{{ applicationName | lower }}
     networks:
-      - private
+      - {{ project.internal_project_name }}_private
     labels:
-      'spryker.app.name': {{ applicationName }}
+      'spryker.app.name': {{ projectName}}_{{ applicationName | lower }}
       'spryker.app.type': glue
-      'spryker.project': ${SPRYKER_DOCKER_PREFIX}:${SPRYKER_DOCKER_TAG}
+      'spryker.project': ${SPRYKER_DOCKER_PREFIX}:{{ project.tag }}
     env_file:
-      - ${DEPLOYMENT_PATH}/env/{{ applicationName }}.env
+      - {{ project.deployment_path }}/env/{{ applicationName }}.env
     environment:
       SPRYKER_TESTING_ENABLED: ${SPRYKER_TESTING_ENABLE}
       SPRYKER_XDEBUG_HOST_IP: ${SPRYKER_XDEBUG_HOST_IP}
@@ -15,4 +16,4 @@
       TIDEWAYS_CLI_ENABLED: ${TIDEWAYS_CLI_ENABLED}
       TIDEWAYS_ENVIRONMENT_NAME: ${TIDEWAYS_ENVIRONMENT_NAME}
       BLACKFIRE_APM_ENABLED: ${BLACKFIRE_APM_ENABLED}
-    <<: *app-volumes
+    <<: *{{ projectName }}-volumes

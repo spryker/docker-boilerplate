@@ -7,7 +7,7 @@ Registry::Help::command -c "jobs stop" "Pauses all jobs."
 Registry::Help::command -c "jobs clean" "Cleans all jobs."
 
 function Command::jobs() {
-    Compose::ensureRunning scheduler
+    Compose::ensureRunning ${SPRYKER_INTERNAL_PROJECT_NAME}_scheduler
 
     local command=${1}
     shift || true

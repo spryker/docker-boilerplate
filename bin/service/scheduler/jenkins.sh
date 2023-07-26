@@ -12,7 +12,9 @@ function Service::Scheduler::isInstalled() {
 
     # shellcheck disable=SC2016
     # For avoid https://github.com/docker/compose/issues/9104
-    local jobsCount=$(Jenkins::callJenkins 'scriptText -d "script=println Jenkins.instance.projects.collect{ it.name }.size"| tail -n 1')
+    local script="script=println Jenkins.instance.projects.findAll{ it.name.startsWith('${SPRYKER_PROJECT_NAME}') }.size"
+    local jobsCount=$(Jenkins::callJenkins 'scriptText -d "'"${script}"'" | tail -n 1')
+
     [ "${jobsCount}" -gt 0 ] && Console::end "[INSTALLED]" && return "${TRUE}" || return "${FALSE}"
 }
 

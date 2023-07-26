@@ -11,7 +11,7 @@
     applicationData: applicationData,
     auth: endpointData['auth'] | default([]),
     storeServices: regions[groupData['region']]['stores'][endpointData['store']]['services'] ?? regions[groupData['region']]['services'] | default([]),
-    upstream: (applicationName | lower) ~ ":9001",
+    upstream: project_name ~ '_' ~ (applicationName | lower) ~ ":9001",
     zedHost: (zedHost | split(':') | first) ~ ':' ~ (_endpointDebugMap[zedHost]),
     timeout: '60m',
     project: _context,

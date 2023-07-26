@@ -1,9 +1,10 @@
-  {{ serviceName }}:
+  {{ serviceData.project_name ~ '_' ~ serviceName }}:
     image: postgres:10-alpine
+    container_name: {{ serviceData.project_name ~ '_' ~ serviceName }}
     networks:
-      - private
+      - {{ internal_project_name }}_private
     labels:
-      'spryker.app.name': database
+      'spryker.app.name': {{ serviceData.project_name ~ '_' ~ serviceName }}
       'spryker.app.type': services
       'spryker.project': ${SPRYKER_DOCKER_PREFIX}:${SPRYKER_DOCKER_TAG}
     healthcheck:
@@ -15,4 +16,4 @@
       POSTGRES_USER: "{{ serviceData['root']['username'] }}"
       POSTGRES_PASSWORD: "{{ serviceData['root']['password'] }}"
     volumes:
-      - {{ serviceName }}-{{ serviceData['engine'] }}-data:/var/lib/postgresql/data:rw
+      - {{ serviceData.project_name ~ '-' ~ serviceName }}-{{ serviceData['engine'] }}-data:/var/lib/postgresql/data:rw

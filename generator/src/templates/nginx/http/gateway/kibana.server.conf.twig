@@ -1,2 +1,3 @@
 {% extends "nginx/http/gateway/server.conf.twig" %}
 {% block upstream %}{{ upstream }}:5601{% endblock upstream %}
+{% block upstream_debug %}{% endblock upstream_debug %}

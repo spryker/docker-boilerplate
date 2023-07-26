@@ -7,6 +7,7 @@
 {% endblock server %}
 {% block location %}
 {{ parent() }}
+        fastcgi_param SPRYKER_PROJECT_NAME "{{ project.project_name }}";
 
         fastcgi_param SPRYKER_ZED_HOST "zed.calls.are.forbidden.from.zed";
         fastcgi_param SPRYKER_ZED_PORT "{{ project['_defaultPort'] }}";

@@ -2,6 +2,10 @@
 
 use DeployFileGenerator\DeployFileGeneratorFactory;
 use DeployFileGenerator\Transfer\DeployFileTransfer;
+use DockerSdk\ConstantBuilder\DockerSdkBashConstantBuilder;
+use DockerSdk\DockerSdkConstants;
+use DockerSdk\DockerSdkFactory;
+use DockerSdk\Generated\DockerSdkBashConstants;
 use Spatie\Url\Url;
 use Symfony\Component\Yaml\Parser;
 use Twig\Environment;
@@ -13,7 +17,10 @@ define('DS', DIRECTORY_SEPARATOR);
 define('APPLICATION_SOURCE_DIR', __DIR__ . DS . 'src');
 include_once __DIR__ . DS . 'vendor' . DS . 'autoload.php';
 
-$deploymentDir = '/data/deployment';
+//todo: proto config
+$deploymentDir = getenv('SPRYKER_DOCKER_SDK_INTERNAL_DEPLOYMENT_DIR');
+generateDockerSdkConstantsPhpFile($deploymentDir);
+
 $projectYaml = buildProjectYaml($deploymentDir . '/project.yml');
 
 if ($projectYaml == '') {
@@ -27,7 +34,8 @@ $loaders = new ChainLoader([
     new FilesystemLoader(APPLICATION_SOURCE_DIR . DS . 'templates'),
     new FilesystemLoader($deploymentDir),
 ]);
-$twig = new Environment($loaders);
+$twig = new Environment($loaders, ['debug' => true]);
+$twig->addExtension(new \Twig\Extension\DebugExtension());
 $nginxVarEncoder = new class() {
     public function encode($value)
     {
@@ -94,8 +102,10 @@ $projectData['_envs'] = array_merge(
     getAdditionalEnvVariables($projectData),
     buildNewrelicEnvVariables($projectData)
 );
+//todo: to generator
 $dynamicStoreMode = $projectData['_envs']['SPRYKER_DYNAMIC_STORE_MODE'] ?? false;
 $projectData['dynamicStoreMode'] = $dynamicStoreMode;
+//////
 $projectData['storageData'] = retrieveStorageData($projectData);
 $projectData['composer']['autoload'] = buildComposerAutoloadConfig($projectData);
 $isAutoloadCacheEnabled = $projectData['_isAutoloadCacheEnabled'] = isAutoloadCacheEnabled($projectData);
@@ -135,8 +145,10 @@ $primal = [];
 $projectData['_entryPoints'] = [];
 $projectData['_endpointMap'] = [];
 $projectData = extendProjectDataWithKeyValueRegionNamespaces($projectData);
-$projectData['_storeSpecific'] = getStoreSpecific($projectData);
-$projectData['_regionSpecific'] = getRegionSpecific($projectData);
+
+//todo: move to generator
+//$projectData['_storeSpecific'] = getStoreSpecific($projectData);
+//$projectData['_regionSpecific'] = getRegionSpecific($projectData);
 $debugPortIndex = 10000;
 $projectData['_endpointDebugMap'] = [];
 
@@ -187,8 +199,10 @@ foreach ($projectData['groups'] ?? [] as $groupName => $groupData) {
 
             $application = $applicationData['application'];
             $store = $endpointData['store'] ?? null;
+//            todo: generator
             $region = $endpointData['region'] ?? null;
             $projectData['groups'][$groupName]['applications'][$applicationName]['endpoints'][$endpoint]['identifier'] = $store ? $store : $region;
+//            //////
             $projectData['groups'][$groupName]['applications'][$applicationName]['endpoints'][$endpoint]['primal'] = false;
             while (!empty($projectData['_ports'][$debugPortIndex])) {
                 $debugPortIndex++;
@@ -230,7 +244,7 @@ foreach ($projectData['groups'] ?? [] as $groupName => $groupData) {
                 $projectData['groups'][$groupName]['applications'][$applicationName]['endpoints'][$endpoint]['redirect']['url']
                     = ensureUrlScheme($redirect['url'], $projectData);
             }
-
+//            todo: generator
             if (!$store && $region && !array_key_exists('redirect', $endpointData)) {
                 # primal is true, or the first one
                 $isPrimal = !empty($endpointData['primal']) || empty($primal[$store][$application]);
@@ -301,6 +315,21 @@ function mapBackendEndpointsWithFallbackZed(array $endpointMap): array
     return $endpointMap;
 }
 
+$factory = new DockerSdkFactory($deploymentDir);
+$config = $factory->getDockerSdkConfig();
+$projectData = $factory->createSharedServicesBuilder()->build($projectData);
+$projectData = $factory->createGatewayBuilder()->build($projectData);
+$projectData = $factory->createMutagenBuilder()->build($projectData);
+$projectData = $factory->createRedisDataBuilderBuilder()->build($projectData);
+$projectData = $factory->createProjectDataBuilder()->build($projectData);
+
+$projectsData = $factory->createJsonReader()->read($config->getProjectDataFilePath());
+$gatewayData = $factory->createJsonReader()->read($config->getGatewayDataFilePath());
+$sharedServices = $factory->createJsonReader()->read($config->getDockerComposeSharedServiceDataFilePath());
+$mutagenData = $factory->createJsonReader()->read($config->getDockerComposeSyncDataFilePath());
+
+$projectData['_storeSpecific'] = getStoreSpecific($projectData);
+// todo: complex logic
 $keyValueStoreConnections = $dynamicStoreMode ? getKeyValueStores($projectData) : false;
 $brokerConnections = getBrokerConnections($projectData);
 
@@ -310,7 +339,8 @@ foreach ($projectData['groups'] ?? [] as $groupName => $groupData) {
         $brokerHosts = getBrokerHosts($projectData, $currentRegionName);
 
         if ($applicationData['application'] !== 'static') {
-            $projectData['_applications'][] = $applicationName;
+//            todo: merge delete
+//            $projectData['_applications'][] = $applicationName;
 
             file_put_contents(
                 $deploymentDir . DS . 'env' . DS . $applicationName . '.env',
@@ -348,7 +378,6 @@ foreach ($projectData['groups'] ?? [] as $groupName => $groupData) {
         }
 
         foreach ($applicationData['endpoints'] ?? [] as $endpoint => $endpointData) {
-
             $host = strtok($endpoint, ':');
             $frontend[$host] = [
                 'zone' => getFrontendZoneByDomainLevel($host),
@@ -484,11 +513,13 @@ if (!empty($projectData['services']['key_value_store']['replicas'])) {
         'replication' => 'predis',
     ], JSON_UNESCAPED_SLASHES);
 
+//    todo: check
     $sources = [
-        'tcp://key_value_store?role=master', 'tcp://key_value_store'
+        'tcp://' . $projectData['internal_project_name'] . '_key_value_store?role=master',
+        'tcp://' . $projectData['internal_project_name'] . 'key_value_store'
     ];
     foreach ($projectData['services']['key_value_store']['replica-services'] as $replica) {
-        $sources[] = 'tcp://key_value_store_' . $replica;
+        $sources[] = 'tcp://' . $projectData['internal_project_name'] . 'key_value_store_' . $replica;
     }
 
     $projectData['services']['key_value_store']['sources'] = json_encode($sources, JSON_UNESCAPED_SLASHES);
@@ -520,16 +551,29 @@ $projectData['regionEndpointMap'] = getRegionEndpointMap($projectData);
 $projectData['regionData'] = $projectData['regions'] ?? [];
 
 file_put_contents(
+    $deploymentDir . DS . 'context' . DS . 'jenkins' . DS . 'spryker.sh',
+    $twig->render('context/jenkins/spryker.sh.twig', $projectData)
+);
+
+// frontend
+file_put_contents(
     $deploymentDir . DS . 'context' . DS . 'nginx' . DS . 'conf.d' . DS . 'frontend.default.conf.tmpl',
     $twig->render('nginx/conf.d/frontend.default.conf.twig', $projectData)
 );
+// gateway
 file_put_contents(
     $deploymentDir . DS . 'context' . DS . 'nginx' . DS . 'conf.d' . DS . 'gateway.default.conf',
-    $twig->render('nginx/conf.d/gateway.default.conf.twig', $projectData)
+    $twig->render('nginx/conf.d/gateway.default.conf.twig', [
+        'projectsData' => $projectsData,
+        'sharedServices' => $sharedServices,
+    ])
 );
 file_put_contents(
     $deploymentDir . DS . 'context' . DS . 'nginx' . DS . 'stream.d' . DS . 'gateway.default.conf',
-    $twig->render('nginx/stream.d/gateway.default.conf.twig', $projectData)
+    $twig->render('nginx/stream.d/gateway.default.conf.twig', [
+        'projectsData' => $projectsData,
+        'sharedServices' => $sharedServices,
+    ])
 );
 file_put_contents(
     $deploymentDir . DS . 'context' . DS . 'nginx' . DS . 'conf.d' . DS . 'debug.default.conf',
@@ -582,8 +626,44 @@ file_put_contents(
 unlink($deploymentDir . DS . 'images' . DS . 'common' . DS . 'application' . DS . 'Dockerfile.twig');
 
 file_put_contents(
-    $deploymentDir . DS . 'docker-compose.yml',
-    $twig->render('docker-compose.yml.twig', $projectData)
+    $deploymentDir . DS  . 'gateway.docker-compose.yml',
+    $twig->render('docker-compose' . DS . 'gateway-compose.yml.twig', [
+        'projectsData' => $projectsData,
+        'sharedServices' => $sharedServices,
+        'gatewayData' => $gatewayData,
+        'internal_project_name' => $config->getInternalProjectName()
+    ])
+);
+
+file_put_contents(
+    $deploymentDir . DS . 'shared-services.docker-compose.yml',
+    $twig->render('docker-compose' . DS . 'shared-services-compose.yml.twig', [
+        'projectsData' => $projectsData,
+        'sharedServices' => $sharedServices,
+        'gatewayData' => $gatewayData,
+        'internal_project_name' => $config->getInternalProjectName()
+    ])
+);
+
+$sharedServicesList = $config->getSharedServiceList();
+$projectServices = $projectData['services'] ?? [];
+
+foreach ($sharedServicesList as $sharedServiceName) {
+    if (isset($projectServices[$sharedServiceName])) {
+        unset($projectServices[$sharedServiceName]);
+    }
+}
+
+file_put_contents(
+    $deploymentDir . DS . $projectData[DockerSdkConstants::PROJECT_NAME_KEY] .'.docker-compose.yml',
+    $twig->render('docker-compose' . DS . 'project-compose.yml.twig', [
+        'projectName' => $projectData[DockerSdkConstants::PROJECT_NAME_KEY],
+        'internal_project_name' => $config->getInternalProjectName(),
+        'projectData' => $projectData,
+        'project_services' => $projectServices,
+        'mutagenData' => $mutagenData,
+        'project_path' => $config->getSprykerProjectPath(),
+    ])
 );
 
 $envVarEncoder->setIsActive(true);
@@ -1593,6 +1673,7 @@ function buildDefaultRegionCredentialsForDatabase(array $projectData): array
             $regionDbConfig = array_merge($defaultDbRegionCredentials, $regionDbConfig);
             $projectData['regions'][$regionName]['services']['database'] = $regionDbConfig;
         }
+
         if (array_key_exists('databases', $regionConfig['services'])) {
             $processedDbs = [];
             foreach ($regionConfig['services']['databases'] as $dbName => $regionDbConfig) {
@@ -1822,4 +1903,19 @@ function getNodeDistroName(array $nodejsConfig, string $imageName): string
     }
 
     return ALPINE_DISTRO_NAME;
+}
+
+function generateDockerSdkConstantsPhpFile(string $deploymentDir): void
+{
+    $envVariableList = [
+        'SPRYKER_DOCKER_SDK_DEPLOYMENT_DIR',
+        'SPRYKER_DOCKER_SDK_INTERNAL_DEPLOYMENT_DIR',
+        'SPRYKER_PROJECT_NAME',
+        'SPRYKER_PROJECT_PATH',
+    ];
+
+    (new DockerSdkBashConstantBuilder(
+        $deploymentDir,
+        $envVariableList,
+    ))->buildDockerSdkConstants();
 }

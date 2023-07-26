@@ -1,10 +1,11 @@
-  {{ serviceName }}:
+  {{ serviceData.project_name ~ '_' ~ serviceName }}:
     image: redis:5.0-alpine
+    container_name: {{ serviceData.project_name ~ '_' ~ serviceName }}
     command: 'redis-server /usr/local/etc/redis/redis.conf --appendonly yes --save \"\"'
     networks:
-      - private
+      - {{ internal_project_name }}_private
     labels:
-      'spryker.app.name': storage
+      'spryker.app.name': {{ serviceData.project_name ~ '_' ~ serviceName }}
       'spryker.app.type': services
       'spryker.project': ${SPRYKER_DOCKER_PREFIX}:${SPRYKER_DOCKER_TAG}
     healthcheck:
@@ -13,20 +14,21 @@
         timeout: 5s
         retries: 5
     volumes:
-      - {{ serviceName }}-{{ serviceData['engine'] }}-data:/data
-      - ./${DEPLOYMENT_PATH}/context/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - {{ serviceData.project_name ~ '-' ~ serviceName }}-{{ serviceData['engine'] }}-data:/data
+      - {{ serviceData.deployment_path }}/context/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
 
 {% if serviceData['replica-services'] is defined %}
 {% for replica in serviceData['replica-services'] %}
   {{ serviceName }}_{{ replica }}:
       image: redis:5.0-alpine
+      container_name: {{ serviceData.project_name ~ '_' ~ serviceName }}_{{ replica }}
       command: "redis-server /usr/local/etc/redis/redis.conf --slaveof {{ serviceName }} 6379"
       depends_on:
         - {{ serviceName }}
       networks:
-          - private
+          - {{ internal_project_name }}_private
       labels:
-          'spryker.app.name': storage
+          'spryker.app.name': {{ serviceData.project_name ~ '_' ~ serviceName }}
           'spryker.app.type': services
           'spryker.project': ${SPRYKER_DOCKER_PREFIX}:${SPRYKER_DOCKER_TAG}
       healthcheck:
@@ -35,8 +37,8 @@
           timeout: 5s
           retries: 5
       volumes:
-          - {{ serviceName }}-{{ serviceData['engine'] }}-data:/data
-          - ./${DEPLOYMENT_PATH}/context/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+          - {{ serviceData.project_name ~ '-' ~ serviceName }}-{{ serviceData['engine'] }}-data:/data
+          - {{ serviceData.deployment_path }}/context/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
 
 {% endfor %}
 {% endif %}

@@ -1,12 +1,13 @@
-  {{ serviceName }}:
+  {{ serviceData.project_name ~ '_' ~ serviceName }}:
+    container_name: {{ serviceData.project_name ~ '_' ~ serviceName }}
     build:
-      context: ./${DEPLOYMENT_PATH}/images/common/services/tideways/
+      context: {{ serviceData.deployment_path }}/images/common/services/tideways/
       dockerfile: Dockerfile
       args:
         TIDEWAYS_ENVIRONMENT_DEFAULT: "{{ serviceData.environment | default('production') }}"
     networks:
-      - private
+      - {{ internal_project_name }}_private
     labels:
-      'spryker.app.name': tideways
+      'spryker.app.name': {{ serviceData.project_name ~ '_' ~ serviceName }}
       'spryker.app.type': agents
       'spryker.project': ${SPRYKER_DOCKER_PREFIX}:${SPRYKER_DOCKER_TAG}

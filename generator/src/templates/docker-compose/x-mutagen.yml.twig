@@ -1,0 +1,26 @@
+{% if mutagenData is not empty %}
+x-mutagen:
+  sync:
+    defaults:
+      symlink:
+        mode: posix-raw
+      ignore:
+        paths:
+{% for rule in mutagenData.sync_ignore %}
+          - '{{ rule | raw }}'
+{% endfor %}
+      permissions:
+        defaultFileMode: 0666
+        defaultDirectoryMode: 0777
+
+{% for mutagenProjectName, mutagenProjectData in mutagenData.projects %}
+    {{ mutagenProjectName }}-codebase:
+      alpha: {{ mutagenProjectData.project_path }}
+      beta: volume://{{ mutagenProjectName }}_data_sync
+      mode: two-way-resolved
+      configurationBeta:
+        permissions:
+          defaultOwner: id:1000
+          defaultGroup: id:1000
+{% endfor %}
+{% endif %}

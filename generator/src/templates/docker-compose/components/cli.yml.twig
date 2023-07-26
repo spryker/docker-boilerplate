@@ -1,0 +1,34 @@
+  {{ projectName }}_cli:
+    image: {{ projectName }}_run_cli:{{ projectData.tag }}
+    container_name: {{ projectName }}_cli
+
+    networks:
+      - {{ projectData.internal_project_name }}_public
+      - {{ projectData.internal_project_name }}_private
+    labels:
+      'spryker.app.name': {{ projectName }}_cli
+      'spryker.app.type': console
+      'spryker.project': ${SPRYKER_DOCKER_PREFIX}:${SPRYKER_DOCKER_TAG}
+    volumes:
+      - {{ projectName }}_ssh_relay:/home/spryker/ssh-relay
+      - {{ projectName }}_cli_history:/home/spryker/history:rw
+      - {{ projectData.deployment_path }}/env/cli:/home/spryker/env:ro
+{% include "docker-compose/components/application-volumes.yml.twig" with {
+    projectName: projectName,
+    projectData: projectData,
+} %}
+    tty: true
+    environment:
+      SPRYKER_LOG_STDOUT: /tmp/stdout
+      SPRYKER_LOG_STDERR: /tmp/stderr
+      SPRYKER_XDEBUG_HOST_IP: ${SPRYKER_XDEBUG_HOST_IP}
+      BLACKFIRE_SERVER_ID: ${BLACKFIRE_SERVER_ID}
+      BLACKFIRE_SERVER_TOKEN: ${BLACKFIRE_SERVER_TOKEN}
+      BLACKFIRE_CLIENT_ID: ${BLACKFIRE_CLIENT_ID}
+      BLACKFIRE_CLIENT_TOKEN: ${BLACKFIRE_CLIENT_TOKEN}
+      TIDEWAYS_APIKEY: ${TIDEWAYS_APIKEY}
+      TIDEWAYS_CLI_ENABLED: ${TIDEWAYS_CLI_ENABLED}
+      TIDEWAYS_ENVIRONMENT_NAME: ${TIDEWAYS_ENVIRONMENT_NAME}
+    command:
+      - "node"
+      - "/home/spryker/bin/cli-rpc.js"

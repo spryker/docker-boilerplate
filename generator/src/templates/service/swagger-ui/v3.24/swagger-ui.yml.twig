@@ -1,17 +1,19 @@
 {% set protocol = project['docker']['ssl']['enabled'] ? 'https://' : 'http://' %}
 {% set firstGlueEndpointMap = project['_endpointMap'] | first %}
-  {{ serviceName }}:
+{# todo: check #}
+  {{ serviceData.project_name ~ '_' ~ serviceName }}:
     image: spryker/swagger-ui:v3.24.3
+    container_name: {{ serviceData.project_name ~ '_' ~ serviceName }}
     networks:
-        - private
+      - {{ internal_project_name }}_private
     labels:
-        'spryker.app.name': swagger
-        'spryker.app.type': hidden
-        'spryker.project': ${SPRYKER_DOCKER_PREFIX}:${SPRYKER_DOCKER_TAG}
+      'spryker.app.name': {{ serviceData.project_name ~ '_' ~ serviceName }}
+      'spryker.app.type': hidden
+      'spryker.project': ${SPRYKER_DOCKER_PREFIX}:${SPRYKER_DOCKER_TAG}
     environment:
-        API_URL: {{ protocol ~ firstGlueEndpointMap['glue'] }}/schema.yml
+      API_URL: {{ protocol ~ firstGlueEndpointMap['glue'] }}/schema.yml
     healthcheck:
-        test: [ "CMD", "nc", "-z", "localhost", "8080" ]
-        interval: 5s
-        timeout: 5s
-        retries: 5
+      test: [ "CMD", "nc", "-z", "localhost", "8080" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5

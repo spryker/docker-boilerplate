@@ -1,0 +1,92 @@
+version: "3.7"
+
+x-{{ projectName }}-volumes:
+  &{{ projectName }}-volumes
+  volumes:
+{% include "docker-compose/components/application-volumes.yml.twig" with {
+    projectName: projectName,
+    projectData: projectData,
+} %}
+
+{#todo: cli BLACKFIRE_APM_ENABLED: ${BLACKFIRE_APM_ENABLED}#}
+{#todo: gateway BLACKFIRE_APM_ENABLED: ${BLACKFIRE_APM_ENABLED}#}
+{#todo: front BLACKFIRE_APM_ENABLED: ${BLACKFIRE_APM_ENABLED}#}
+
+services:
+{% include "docker-compose/components/cli-ssh-relay.yml.twig" with _context %}
+{% include "docker-compose/components/cli.yml.twig" with _context %}
+{% include "docker-compose/components/frontend.yml.twig" with _context %}
+
+{% for group in projectData.groups %}
+{% for applicationName, applicationData in group['applications'] %}
+{% if applicationData['application'] != 'static' %}
+{% include "application/" ~ (applicationData['application'] | lower) ~ ".yml.twig" with {
+    applicationName: applicationName,
+    applicationData: applicationData,
+    regionName: group['region'],
+    project: projectData
+} %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+
+{% for serviceName, serviceData in project_services %}
+{% set engine = serviceData['engine'] | lower %}
+{% set version = serviceData['version'] | default('default') %}
+{% include "service/" ~ engine ~ "/" ~ version ~ "/" ~  engine ~ ".yml.twig" with {
+    project: projectData,
+    internal_project_name: projectData.internal_project_name,
+    serviceName: serviceName,
+    serviceData: serviceData,
+    engine: engine,
+    version: version
+} only %}
+{% endfor %}
+
+volumes:
+{% for serviceName, serviceData in projectData.services %}
+{% if serviceName not in sharedServices | keys  %}
+  {{ projectName }}-{{ serviceName }}-{{ serviceData['engine'] }}-data:
+    name: {{ projectName }}-{{ serviceName }}-{{ serviceData['engine'] }}-data
+    external: false
+{% endif %}
+{% endfor %}
+  {{ projectName }}_ssh_relay:
+    name: {{ projectName }}_ssh_relay
+    external: false
+  {{ projectName }}_logs:
+    name: {{ projectName }}_logs
+    external: false
+  {{ projectName }}_cli_history:
+    name: {{ projectName }}_cli_history
+    external: false
+{% if  projectData._mountMode != 'baked' and projectData._mountMode != 'native' %}
+  {{ projectName }}_data_sync:
+    name: {{ projectName }}_data_sync
+    external: true
+{% endif %}
+
+x-mutagen:
+  sync:
+    defaults:
+      symlink:
+        mode: posix-raw
+      ignore:
+        paths:
+{% for rule in mutagenData.sync_ignore %}
+          - '{{ rule | raw }}'
+{% endfor %}
+      permissions:
+        defaultFileMode: 0666
+        defaultDirectoryMode: 0777
+
+    {{ projectName }}-codebase:
+      alpha: {{ project_path }}
+      beta: volume://{{ projectName }}_data_sync
+      mode: two-way-resolved
+      configurationBeta:
+        permissions:
+          defaultOwner: id:1000
+          defaultGroup: id:1000
+
+{% include "docker-compose/components/network.yml.twig" with _context %}

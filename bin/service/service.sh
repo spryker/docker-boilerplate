@@ -1,13 +1,29 @@
 #!/bin/bash
 
 function Service::isServiceExist() {
-  local serviceName="${1}"
+    local serviceName="${1}"
+    local isServiceShared="${FALSE}"
+    local isServiceExist=''
 
-  local isServiceExist=$(Compose::command config --services | grep "${serviceName}")
+    for sharedServiceName in ${SPRYKER_SHARED_SERVICES_LIST[@]}; do
+        if [ "${serviceName}" == "${sharedServiceName}" ]; then
+            isServiceShared="${TRUE}"
 
-  if [ -z "${isServiceExist}" ]; then
+            break
+        fi
+    done
+
+    if [ "${isServiceShared}" == "${TRUE}" ]; then
+        serviceName="${SPRYKER_INTERNAL_PROJECT_NAME}_${serviceName}"
+        isServiceExist=$(Compose::SharedServices::command config --services | grep "${serviceName}")
+    else
+        serviceName="${SPRYKER_PROJECT_NAME}_${serviceName}"
+        isServiceExist=$(Compose::command config --services | grep "${serviceName}")
+    fi
+
+    if [ -z "${isServiceExist}" ]; then
         return ${FALSE};
-  fi
+    fi
 
-  return ${TRUE}
+    return ${TRUE}
 }

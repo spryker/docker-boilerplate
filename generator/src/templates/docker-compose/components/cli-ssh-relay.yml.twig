@@ -1,0 +1,14 @@
+  {{ projectName }}_cli_ssh_relay:
+    image: spryker/socat:latest
+    container_name: {{ projectName }}_cli_ssh_relay
+    privileged: true
+    command: UNIX-LISTEN:/tmp/ssh-relay/ssh-auth.sock,fork,unlink-early,user=1000,group=1000,mode=666 UNIX-CONNECT:/tmp/ssh-relay/input-ssh-auth.sock
+    networks:
+      - {{ internal_project_name }}_private
+    volumes:
+      - {{ projectName }}_ssh_relay:/tmp/ssh-relay
+{%  if _platform == 'macos' %}
+      - /run/host-services/ssh-auth.sock:/tmp/ssh-relay/input-ssh-auth.sock
+{% else %}
+      - ${SSH_AUTH_SOCK_ON_HOST}:/tmp/ssh-relay/input-ssh-auth.sock
+{% endif %}

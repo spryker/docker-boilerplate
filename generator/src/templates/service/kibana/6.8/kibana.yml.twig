@@ -1,18 +1,19 @@
-  {{ serviceName }}:
+  {{ serviceData.project_name ~ '_' ~ serviceName }}:
     image: spryker/kibana:6.8.4-eol
+    container_name: {{ serviceData.project_name ~ '_' ~ serviceName }}
     networks:
-        - private
+      - {{ internal_project_name }}_private
     labels:
-      'spryker.app.name': kibana
+      'spryker.app.name': {{ serviceData.project_name ~ '_' ~ serviceName }}
       'spryker.app.type': services
       'spryker.project': ${SPRYKER_DOCKER_PREFIX}:${SPRYKER_DOCKER_TAG}
     healthcheck:
-        test: curl --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt -s https://localhost:5601 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
-        interval: 30s
-        timeout: 10s
-        retries: 5
+      test: curl --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt -s https://localhost:5601 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 30s
+      timeout: 10s
+      retries: 5
     environment:
         - NODE_OPTIONS=--max-old-space-size=5000
     volumes:
-        - {{ serviceName }}-{{ serviceData['engine'] }}-data:/usr/share/kibana/data:rw
-        - ./${DEPLOYMENT_PATH}/context/kibana/6.8/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+      - {{ serviceData.project_name ~ '-' ~ serviceName }}-{{ serviceData['engine'] }}-data:/usr/share/kibana/data:rw
+      - {{ serviceData.deployment_path }}/context/kibana/6.8/kibana.yml:/usr/share/kibana/config/kibana.yml:ro

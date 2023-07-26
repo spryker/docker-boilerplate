@@ -1,13 +1,14 @@
-  {{ serviceName }}:
+  {{ serviceData.project_name ~ '_' ~ serviceName }}:
     image: blackfire/blackfire:2
+    container_name: {{ serviceData.project_name ~ '_' ~ serviceName }}
     environment:
-        BLACKFIRE_SERVER_ID: ${BLACKFIRE_SERVER_ID}
-        BLACKFIRE_SERVER_TOKEN: ${BLACKFIRE_SERVER_TOKEN}
-        BLACKFIRE_CLIENT_ID: ${BLACKFIRE_CLIENT_ID}
-        BLACKFIRE_CLIENT_TOKEN: ${BLACKFIRE_CLIENT_TOKEN}
+      BLACKFIRE_SERVER_ID: ${BLACKFIRE_SERVER_ID}
+      BLACKFIRE_SERVER_TOKEN: ${BLACKFIRE_SERVER_TOKEN}
+      BLACKFIRE_CLIENT_ID: ${BLACKFIRE_CLIENT_ID}
+      BLACKFIRE_CLIENT_TOKEN: ${BLACKFIRE_CLIENT_TOKEN}
     networks:
-        - private
+      - {{ internal_project_name }}_private
     labels:
-      'spryker.app.name': blackfire
+      'spryker.app.name': {{ serviceData.project_name ~ '_' ~ serviceName }}
       'spryker.app.type': agents
       'spryker.project': ${SPRYKER_DOCKER_PREFIX}:${SPRYKER_DOCKER_TAG}

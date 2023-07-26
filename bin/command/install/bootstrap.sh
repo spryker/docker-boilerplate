@@ -4,6 +4,7 @@ require docker
 
 import environment/docker.sh
 import environment/docker-compose.sh
+import project/project.sh
 
 Registry::addCommand "boot" "Command::bootstrap"
 Registry::addCommand "bootstrap" "Command::bootstrap"
@@ -41,6 +42,8 @@ function Command::bootstrap() {
     done
     shift $((OPTIND - 1))
 
+    Project::validate
+
     local gitHash=$(git rev-parse --verify HEAD 2>/dev/null || true)
     local tmpDeploymentDir="${SOURCE_DIR}/deployment/_tmp"
     local defaultProjectYaml=$([ -f "./deploy.local.yml" ] && echo -n "./deploy.local.yml" || echo -n "./deploy.yml")
@@ -67,6 +70,8 @@ function Command::bootstrap() {
         rm -rf "${tmpDeploymentDir}"
     fi
     mkdir "${tmpDeploymentDir}"
+
+    Project::bootstrap "${tmpDeploymentDir}"
 
     tmpDeploymentDir="$(cd "${tmpDeploymentDir}" >/dev/null 2>&1 && pwd)"
 
@@ -106,11 +111,16 @@ function Command::bootstrap() {
     if [ "${USER_FULL_ID%%:*}" != '0' ]; then
         userToRun=()
     fi
+
     docker run -i --rm "${userToRun[@]}" \
         -e SPRYKER_PLATFORM_IMAGE="${SPRYKER_PLATFORM_IMAGE:-""}" \
         -e SPRYKER_DOCKER_SDK_PLATFORM="${_PLATFORM}" \
         -e SPRYKER_DOCKER_SDK_DEPLOYMENT_DIR="${DESTINATION_DIR}" \
+        -e SPRYKER_DOCKER_SDK_INTERNAL_DEPLOYMENT_DIR="${SPRYKER_DOCKER_SDK_INTERNAL_DEPLOYMENT_DIR}" \
+        -e SPRYKER_PROJECT_NAME="${SPRYKER_PROJECT_NAME}" \
+        -e SPRYKER_PROJECT_PATH="${SPRYKER_PROJECT_PATH}" \
         -e VERBOSE="${VERBOSE}" \
+        -v "${SOURCE_DIR}/generator/src":/data/src:rw \
         -v "${tmpDeploymentDir}":/data/deployment:rw \
         spryker_docker_sdk
 
@@ -127,7 +137,8 @@ function Command::bootstrap() {
     fi
 
     Console::info "Deployment is generated into ${LGRAY}${DESTINATION_DIR}"
-    Console::log "Use ${OK}docker/sdk$([ "${SPRYKER_PROJECT_NAME}" != 'default' ] && echo -n " -p ${SPRYKER_PROJECT_NAME}") up${NC} to start the application."
+
+    Console::log "Use ${OK}docker/sdk$([ "${SPRYKER_PROJECT_NAME}" != $(basename $(pwd)) ] && echo -n " -p ${SPRYKER_PROJECT_NAME}") up${NC} to start the application."
     Console::log ''
 }
 
@@ -142,6 +153,7 @@ function Command::bootstrap::_deploy() {
     [ ! -d "${DESTINATION_DIR}" ] && mkdir "${DESTINATION_DIR}"
     cp -R "${tmpDeploymentDir}/." "${DESTINATION_DIR}"
     rm -rf "${tmpDeploymentDir}"
+    Project::postBootstrap
 }
 
 function Command::bootstrap::_injectDeployment() {

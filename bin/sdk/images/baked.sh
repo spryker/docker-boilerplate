@@ -37,6 +37,7 @@ function Images::buildFrontend() {
     done
 
     Images::_buildFrontend baked
+#    todo:
     Images::_buildGateway
     Images::tagFrontend "${SPRYKER_DOCKER_TAG}"
 }

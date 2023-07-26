@@ -1,0 +1,26 @@
+<?php
+
+/**
+ * This file is part of the Spryker Suite.
+ * For full license information, please view the LICENSE file that was distributed with this source code.
+ */
+
+namespace DockerSdk\Generated;
+
+/**
+ * Class was created automatically on docker/sdk boot step.
+ * For any updates go to `generateDockerSdkConstantsPhpFile()` into index.php
+ */
+interface DockerSdkBashConstants
+{
+{% for constantName, constantData in data %}
+    /**
+     * @var {{ constantData.type | raw }}
+     */
+{% if constantData.value is iterable %}
+    public const {{ constantName | upper | raw }} = ['{{ constantData.value | join('\', \'') | raw }}'];
+{% else %}
+    public const {{ constantName | upper | raw }} = {{ constantData.value | raw }};
+{% endif %}
+{% endfor %}
+}

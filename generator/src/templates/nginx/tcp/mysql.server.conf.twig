@@ -1,3 +1,4 @@
 {% extends "nginx/tcp/server.conf.twig" %}
 {% block port %}{{ port | default(3306) }}{% endblock port %}
 {% block upstream %}{{ upstream }}:3306{% endblock upstream %}
+{% block upstream_debug %}{% endblock upstream_debug %}

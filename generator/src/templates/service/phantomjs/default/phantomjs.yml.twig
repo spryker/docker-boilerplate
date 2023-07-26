@@ -1,9 +1,10 @@
-  {{ serviceName }}:
+  {{ serviceData.project_name ~ '_' ~ serviceName }}:
     image: wernight/phantomjs:latest
+    container_name: {{ serviceData.project_name ~ '_' ~ serviceName }}
     networks:
-      - public
+      - {{ internal_project_name }}_public
     labels:
-      'spryker.app.name': webdriver
+      'spryker.app.name': {{ serviceData.project_name ~ '_' ~ serviceName }}
       'spryker.app.type': services
       'spryker.project': ${SPRYKER_DOCKER_PREFIX}:${SPRYKER_DOCKER_TAG}
     expose:

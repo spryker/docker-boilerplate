@@ -1,13 +1,29 @@
-{% for serviceName, serviceData in services %}
+{% for sharedServiceName, sharedServiceData in sharedServices %}
+{% for endpoint, endpointData in sharedServiceData['endpoints'] %}
+{% set protocol = endpointData['protocol'] | default('http') %}
+{% if protocol is same as ('tcp') %}
+{% include "nginx/#{protocol}/#{sharedServiceData['engine']}.server.conf.twig" with {
+    endpoint: endpoint,
+    endpointData: endpointData,
+    upstream: sharedServiceData.project_name ~ '_' ~ sharedServiceName,
+} %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+
+{% for projectName, projectData in projectsData %}
+{% for serviceName, serviceData in projectData.services %}
+{% if serviceName not in sharedServices | keys %}
 {% for endpoint, endpointData in serviceData['endpoints'] %}
 {% set protocol = endpointData['protocol'] | default('http') %}
 {% if protocol is same as ('tcp') %}
 {% include "nginx/#{protocol}/#{serviceData['engine']}.server.conf.twig" with {
     endpoint: endpoint,
     endpointData: endpointData,
-    upstream: serviceName,
-    project: _context
+    upstream: projectData.project_name ~ '_' ~ serviceName,
 } %}
+{% endif %}
+{% endfor %}
 {% endif %}
 {% endfor %}
 {% endfor %}

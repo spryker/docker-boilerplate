@@ -7,7 +7,7 @@ require docker tr awk wc sed grep
 Registry::Flow::addBoot "Compose::verboseMode"
 
 function Compose::getComposeFiles() {
-    local composeFiles="-f ${DEPLOYMENT_PATH}/docker-compose.yml"
+    local composeFiles="-f ${DEPLOYMENT_PATH}/../${SPRYKER_INTERNAL_PROJECT_NAME}/${SPRYKER_PROJECT_NAME}.docker-compose.yml"
 
     for composeFile in ${DOCKER_COMPOSE_FILES_EXTRA}; do
         composeFiles+=" -f ${composeFile}"
@@ -18,15 +18,16 @@ function Compose::getComposeFiles() {
 
 function Compose::ensureTestingMode() {
     SPRYKER_TESTING_ENABLE=1
-    local isTestMode=$(docker ps --filter 'status=running' --filter "name=${SPRYKER_DOCKER_PREFIX}_webdriver_*" --format "{{.Names}}")
+#    todo: chould be project namespace
+    local isTestMode=$(docker ps --filter 'status=running' --filter "name=${SPRYKER_PROJECT_NAME}_webdriver_*" --format "{{.Names}}")
     if [ -z "${isTestMode}" ]; then
         Compose::run
     fi
 }
 
 function Compose::ensureRunning() {
-    local service=${1:-'cli'}
-    local isCliRunning=$(docker ps --filter 'status=running' --filter "name=${SPRYKER_DOCKER_PREFIX}_${service}_*" --format "{{.Names}}")
+    local service=${1:-${SPRYKER_PROJECT_NAME}_'cli'}
+    local isCliRunning=$(docker ps --filter 'status=running' --filter "name=${service}" --format "{{.Names}}")
     if [ -z "${isCliRunning}" ]; then
         Compose::run
     fi
@@ -35,8 +36,9 @@ function Compose::ensureRunning() {
 function Compose::ensureCliRunning() {
     local isCliRunning=$(docker ps --filter 'status=running' --filter "ancestor=${SPRYKER_DOCKER_PREFIX}_run_cli:${SPRYKER_DOCKER_TAG}" --filter "name=${SPRYKER_DOCKER_PREFIX}_cli_*" --format "{{.Names}}")
     if [ -z "${isCliRunning}" ]; then
+#        todo: check
         Compose::runCliDependencyServices
-        Compose::run --no-deps cli cli_ssh_relay
+        Compose::run --no-deps ${SPRYKER_PROJECT_NAME}_cli ${SPRYKER_PROJECT_NAME}_cli_ssh_relay
         Registry::Flow::runAfterCliReady
     fi
 }
@@ -67,7 +69,7 @@ function Compose::exec() {
         -e SPRYKER_XDEBUG_ENABLE_FOR_CLI="${SPRYKER_XDEBUG_ENABLE_FOR_CLI}" \
         -e SPRYKER_TESTING_ENABLE_FOR_CLI="${SPRYKER_TESTING_ENABLE_FOR_CLI}" \
         -e COMPOSER_AUTH="${COMPOSER_AUTH}" \
-        cli \
+        ${SPRYKER_PROJECT_NAME}_cli \
         bash -c 'bash ~/bin/cli.sh'
 }
 
@@ -91,14 +93,29 @@ function Compose::verboseMode() {
 }
 
 function Compose::command() {
-
     local -a composeFiles=()
     IFS=' ' read -r -a composeFiles <<< "$(Compose::getComposeFiles)"
 
     ${DOCKER_COMPOSE_SUBSTITUTE:-'docker-compose'} \
         --project-directory "${PROJECT_DIR}" \
-        --project-name "${SPRYKER_DOCKER_PREFIX}" \
+        --project-name "${SPRYKER_PROJECT_NAME}" \
         "${composeFiles[@]}" \
+        "${@}"
+}
+
+function Compose::SharedServices::command() {
+    docker-compose \
+        --project-directory "${PROJECT_DIR}" \
+        --project-name "${SPRYKER_INTERNAL_PROJECT_NAME}_shared_services" \
+        -f "${DEPLOYMENT_PATH}/../${SPRYKER_INTERNAL_PROJECT_NAME}/shared-services.docker-compose.yml" \
+        "${@}"
+}
+
+function Compose::Gateway::command() {
+    docker-compose \
+        --project-directory "${PROJECT_DIR}" \
+        --project-name "${SPRYKER_INTERNAL_PROJECT_NAME}_gateway" \
+        -f "${DEPLOYMENT_PATH}/../${SPRYKER_INTERNAL_PROJECT_NAME}/gateway.docker-compose.yml" \
         "${@}"
 }
 
@@ -145,30 +162,32 @@ function Compose::up() {
     Codebase::build ${noCache} ${doBuild}
     Assets::build ${noCache} ${doAssets}
     Images::buildFrontend ${noCache} ${doBuild}
+    Compose::SharedServices::command up -d
+    Compose::Gateway::command up -d
+
     Compose::run --build
-    Compose::command restart frontend gateway
+    Compose::command restart ${SPRYKER_PROJECT_NAME}_frontend
+    Compose::Gateway::command restart ${SPRYKER_INTERNAL_PROJECT_NAME}_gateway
 
     Registry::Flow::runAfterUp
 
     Data::load ${noCache} ${doData}
-    Service::Scheduler::start ${noCache} ${doJobs}
+    Service::Scheduler::start '--force' ${noCache} ${doJobs}
 }
 
 function Compose::run() {
-
     Registry::Flow::runBeforeRun
-
     Console::verbose "${INFO}Running Spryker containers${NC}"
-    sync start
+    Compose::command --compatibility up -d --quiet-pull "${@}"
 
-    Compose::command --compatibility up -d --remove-orphans --quiet-pull "${@}"
-
+# todo: env variable for each project
+# todo: check
     if [ -n "${SPRYKER_TESTING_ENABLE}" ] && Service::isServiceExist scheduler; then
-        Compose::command --compatibility stop scheduler
+        Service::Scheduler::stop
     fi
 
     if [ -z "${SPRYKER_TESTING_ENABLE}" ]; then
-        Compose::command --compatibility stop webdriver
+      Compose::command --compatibility stop "${SPRYKER_PROJECT_NAME}_webdriver"
     fi
 
     # Note: Compose::run can be used for running only one container, e.g. CLI.
@@ -191,27 +210,44 @@ function Compose::restart() {
 
 function Compose::stop() {
     Console::verbose "${INFO}Stopping all containers${NC}"
-    Compose::command stop
+
+    if [ ! -f "${DEPLOYMENT_DIR}/${ENABLED_FILENAME}" ]; then
+      return
+    fi
+
+    local enabledProjects=($(Project::getListOfEnabledProjects))
+    local enabledProjectsCount=${#enabledProjects[@]}
+
+    if [ "${enabledProjectsCount}" == 1 ]; then
+      Compose::command --profile ${SPRYKER_INTERNAL_PROJECT_NAME} --profile ${SPRYKER_PROJECT_NAME} stop
+    else
+      docker stop $(docker ps --filter "name=${SPRYKER_PROJECT_NAME}" --format="{{.ID}}")
+    fi
+
     Registry::Flow::runAfterStop
 }
 
-function Compose::down() {
+function Compose::down()
+{
     Console::verbose "${INFO}Stopping and removing all containers${NC}"
-    Compose::command down --remove-orphans
-    sync stop
+    Service::Scheduler::clean
+    Compose::command down
+    docker volume rm $(docker volume ls --filter "name=${SPRYKER_PROJECT_NAME}" --format="{{.Name}}")
     Registry::Flow::runAfterDown
 }
 
 function Compose::cleanVolumes() {
     Console::verbose "${INFO}Stopping and removing all Spryker containers and volumes${NC}"
-    Compose::command down -v --remove-orphans
-    Registry::Flow::runAfterDown
+    Compose::down
+}
+
+function Compose::cleanImages() {
+    Compose::command rmi --force $(docker images --filter "reference=${SPRYKER_PROJECT_NAME}*" --format="{{.ID}}")
 }
 
 function Compose::cleanEverything() {
-    Console::verbose "${INFO}Stopping and removing all Spryker containers and volumes${NC}"
-    Compose::command down -v --remove-orphans --rmi all
-    Registry::Flow::runAfterDown
+    Compose::cleanVolumes
+    Compose::cleanImages
 }
 
 function Compose::runCliDependencyServices() {
@@ -219,7 +255,7 @@ function Compose::runCliDependencyServices() {
         Compose::run --no-deps tideways
     fi
 }
-
+# todo: another place
 function Compose::cleanSourceDirectory() {
   local projectPath
   local srcGeneratedPath='src/Generated'

@@ -32,6 +32,7 @@ server {
 
 {% block locations %}
     location / {
+{#    todo: check #}
         proxy_pass http://{% block upstream %}{{ upstream }}{% endblock upstream %};
     }
 {% endblock locations %}

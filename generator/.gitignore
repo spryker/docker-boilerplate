@@ -1,3 +1,4 @@
 deploy-file-generator/tests/_output
 deploy-file-generator/tests/_support/_generated
 vendor/
+src/Generated

@@ -1,0 +1,40 @@
+  {{ projectName }}_frontend:
+    image: {{ projectName }}_run_frontend:{{ projectData.tag }}
+    container_name: {{ projectName }}_frontend
+    networks:
+      - {{ internal_project_name }}_private
+    labels:
+      'spryker.app.name': {{ projectName }}_frontend
+      'spryker.app.type': proxy
+      'spryker.project': ${SPRYKER_DOCKER_PREFIX}:${SPRYKER_DOCKER_TAG}
+    depends_on:
+{% for group in projectData.groups %}
+{% for applicationName, applicationData in group['applications'] %}
+{% if applicationData['application'] != 'static' %}
+      - {{ projectName }}_{{ applicationName | lower }}
+{% endif %}
+{% endfor %}
+{% endfor %}
+    environment:
+      # TODO reconsider to use default in entrypoint
+      ALLOWED_IP: "127.0.0.1"
+      SPRYKER_TESTING_ENABLE: ${SPRYKER_TESTING_ENABLE}
+{% if projectData.docker['debug']['xdebug']['enabled'] is not defined or projectData.docker['debug']['xdebug']['enabled'] == true %}
+      SPRYKER_XDEBUG_ENABLE: ${SPRYKER_XDEBUG_ENABLE}
+{% endif %}
+{% for group in projectData.groups %}
+{% for applicationName, applicationData in group['applications'] %}
+{% if applicationData['application'] != 'static' %}
+      SPRYKER_NGINX_CGI_HOST_{{ applicationName | upper }}:  {{ projectName }}_{{ applicationName | lower }}
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% if projectData._mountMode != 'baked' %}
+    volumes:
+{% if projectData._mountMode == 'native' %}
+{# todo: check #}
+      - ./public:/data/public:ro
+{% else %}
+      - {{ projectName }}_data_sync:/data
+{% endif %}
+{% endif %}

@@ -1,0 +1,24 @@
+version: "3.7"
+
+services:
+{% for serviceName, serviceData in sharedServices %}
+{% set engine = serviceData['engine'] | lower %}
+{% set version = serviceData['version'] | default('default') %}
+{% include "service/" ~ engine ~ "/" ~ version ~ "/" ~  engine ~ ".yml.twig" with {
+    serviceName: serviceName,
+    serviceData: serviceData,
+    engine: engine,
+    version: version,
+    projectsData: projectsData,
+    internal_project_name: internal_project_name
+} only %}
+{% endfor %}
+
+volumes:
+{% for serviceName, serviceData in sharedServices %}
+  {{ serviceData.project_name ~ '-' ~ serviceName }}-{{ serviceData['engine'] }}-data:
+    name: {{ serviceData.project_name ~ '-' ~ serviceName }}-{{ serviceData['engine'] }}-data
+    external: false
+{% endfor %}
+
+{% include "docker-compose/components/network.yml.twig" with _context %}

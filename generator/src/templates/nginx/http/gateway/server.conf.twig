@@ -21,6 +21,12 @@ server {
 
         set $upstream http://{% block upstream %}{{ upstream }}{% endblock upstream %};
         proxy_pass $upstream;
+{% block upstream_debug %}
+        set $upstream_debug http://{{ upstreamDebug }};
+        if ($xdebug_mode) {
+            proxy_pass $upstream_debug;
+        }
+{% endblock upstream_debug %}
 {% endblock location %}
     }
 {% endblock locations %}

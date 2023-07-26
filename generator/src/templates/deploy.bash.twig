@@ -47,6 +47,7 @@ import command/runtime/demo.sh
 import command/runtime/clean-data.sh
 import command/runtime/jobs.sh
 import command/runtime/logs.sh
+import command/runtime/environments.sh
 
 # Building
 Registry::Help::row ''
@@ -65,8 +66,10 @@ import command/internal/trouble.sh
 import command/internal/sync.sh
 import command/internal/prune.sh
 
+import project/project.sh
+
 # Installers
-{% if services['scheduler']['engine'] is defined and services['scheduler']['engine'] == 'jenkins' %}
+{% if services['scheduler']['engine'] is defined and shared_services['scheduler']['engine'] == 'jenkins' %}
 import installer/jenkins-template.sh
 {% endif %}
 {% if _requirementAnalyzerData.hosts is not empty %}
@@ -103,16 +106,20 @@ readonly DEPLOYMENT_DIR="$(cd "${BASH_SOURCE%/*}" >/dev/null 2>&1 && pwd)"
 readonly DEPLOYMENT_PATH="${DEPLOYMENT_DIR/$PROJECT_DIR/.}"
 readonly SECRETS_FILE_PATH="${DEPLOYMENT_DIR}/.secrets"
 readonly PROGRESS_TYPE=${PROGRESS_TYPE:-tty}
+readonly SPRYKER_PROJECT_NAME={{ project_name }}
+readonly SPRYKER_PROJECT_PATH={{ project_path }}
+readonly SPRYKER_INTERNAL_PROJECT_NAME={{ internal_project_name }}
 VERBOSE=${VERBOSE:-0}
 
 # Predefined constants
 readonly APPLICATION_ENV="{{ environment | default('docker') }}"
+{# todo: fix #}
 declare -a -r SPRYKER_APPLICATIONS=({{ _applications | join(' ') | raw }})
 declare -a -r SPRYKER_ENTRYPOINTS=({{ _entryPoints | join(' ') | raw }})
 readonly COMPOSE_PROJECT_NAME={{ namespace | default('spryker') }}
 readonly SPRYKER_PIPELINE=${SPRYKER_PIPELINE:-{{ pipeline | default('docker') }}}
 readonly SPRYKER_PLATFORM_IMAGE=${SPRYKER_PLATFORM_IMAGE:-{{ image is iterable ? image['tag'] : image | default('spryker/php:7.2') }}}
-readonly SPRYKER_DOCKER_PREFIX=${COMPOSE_PROJECT_NAME}
+readonly SPRYKER_DOCKER_PREFIX=${SPRYKER_PROJECT_NAME:-COMPOSE_PROJECT_NAME}
 readonly SPRYKER_DOCKER_TAG="{{ tag | default('1.0') }}"
 readonly SPRYKER_FRONTEND_IMAGE="{{ assets['image'] | default('nginx:alpine') }}"
 readonly SPRYKER_COMPOSER_MODE="{{ composer.mode | default('') }}"
@@ -127,8 +134,8 @@ readonly SPRYKER_DEFAULT_REGION="{{ regions | keys | first }}"
 {% endif %}
 readonly SPRYKER_FILE_MODE="{{ _fileMode }}"
 readonly SPRYKER_XDEBUG_MODE_ENABLE="{{ docker['debug']['xdebug']['enabled'] is not defined or docker['debug']['xdebug']['enabled'] == true ? '1' : '' }}"
-readonly SPRYKER_SYNC_SESSION_NAME="{{ _syncSessionName }}"
-readonly SPRYKER_SYNC_VOLUME="${SPRYKER_DOCKER_PREFIX}_${SPRYKER_DOCKER_TAG}_data_sync"
+readonly SPRYKER_SYNC_SESSION_NAME="{{ project_name ~ '-codebase' }}"
+readonly SPRYKER_SYNC_VOLUME="{{ project_name ~ '_data_sync' }}"
 readonly DOCKER_COMPOSE_FILES_EXTRA="{{ docker['compose']['yamls'] | default([]) | join(' ') }}"
 readonly SPRYKER_DASHBOARD_ENDPOINT="{{ _dashboardEndpoint }}"
 readonly KNOWN_HOSTS="{{ _knownHosts | default("") }}"
@@ -167,6 +174,7 @@ if [ -n "${GITHUB_TOKEN}" ]; then
     readonly TOKEN_BASED_COMPOSER_AUTH="{\"github-oauth\":{\"github.com\":\"${GITHUB_TOKEN}\"}}"
 fi
 readonly COMPOSER_AUTH=${COMPOSER_AUTH:-${TOKEN_BASED_COMPOSER_AUTH}}
+{# todo: https://github.com/docker/for-mac/issues/4242 #}
 readonly SSH_AUTH_SOCK_ON_HOST=${SSH_AUTH_SOCK:-"${DEPLOYMENT_PATH}/context/ssh/ssh-agent.mock"}
 readonly SSH_AUTH_SOCK_IN_CLI="$([ -n "${SSH_AUTH_SOCK}" ] && [ -z "${COMPOSER_AUTH}" ] && echo '/home/spryker/ssh-relay/ssh-auth.sock' || echo '')"
 

@@ -1,9 +1,10 @@
-  {{ serviceName }}:
+  {{ serviceData.project_name ~ '_' ~ serviceName }}:
     image: spryker/elasticsearch:5.6.16-eol
+    container_name: {{ serviceData.project_name ~ '_' ~ serviceName }}
     networks:
-      - private
+      - {{ internal_project_name }}_private
     labels:
-      'spryker.app.name': search
+      'spryker.app.name': {{ serviceData.project_name ~ '_' ~ serviceName }}
       'spryker.app.type': services
       'spryker.project': ${SPRYKER_DOCKER_PREFIX}:${SPRYKER_DOCKER_TAG}
     healthcheck:
@@ -14,5 +15,5 @@
     environment:
       ES_JAVA_OPTS: "-Xms512m -Xmx512m"
     volumes:
-      - {{ serviceName }}-{{ serviceData['engine'] }}-data:/usr/share/elasticsearch/data:rw
-      - ./${DEPLOYMENT_PATH}/context/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - {{ serviceData.project_name ~ '-' ~ serviceName }}-{{ serviceData['engine'] }}-data:/usr/share/elasticsearch/data:rw
+      - {{ serviceData.deployment_path }}/context/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro

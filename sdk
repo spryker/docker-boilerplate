@@ -19,7 +19,10 @@ import command/install/bootstrap.sh
 
 import command/install/config.sh
 
-SPRYKER_PROJECT_NAME=${SPRYKER_PROJECT_NAME:-default}
+import project/project.sh
+
+SPRYKER_PROJECT_PATH=$(pwd)
+SPRYKER_PROJECT_NAME=${SPRYKER_PROJECT_NAME:-$(Project::getNameFromPath "${SPRYKER_PROJECT_PATH}")}
 
 while getopts ":p:" opt; do
     case ${opt} in
@@ -48,7 +51,8 @@ shift $((OPTIND - 1))
 
 System::Bootstrap
 
-readonly DESTINATION_DIR="${SOURCE_DIR}/deployment/${SPRYKER_PROJECT_NAME}"
+readonly DEPLOYMENT_DIR="${SOURCE_DIR}/deployment"
+readonly DESTINATION_DIR="${DEPLOYMENT_DIR}/${SPRYKER_PROJECT_NAME}"
 readonly DEPLOY_SCRIPT=${DESTINATION_DIR}/deploy
 
 Registry::Help::section 'Quick start:'
@@ -60,18 +64,22 @@ shift || true
 case "${command}" in
     config)
         bash "${FRAMEWORK_CWD}/standalone/logo/spryker-sdk.sh" >&2
+        Project::info
         Command::config "${@}"
         ;;
     boot | bootstrap)
         bash "${FRAMEWORK_CWD}/standalone/logo/spryker-sdk.sh" >&2
+        Project::info
         Command::bootstrap "${@}"
         ;;
     help | '')
         bash "${FRAMEWORK_CWD}/standalone/logo/spryker-sdk.sh" >&2
+        Project::info
         Registry::printHelp
         [ -f "${DEPLOY_SCRIPT}" ] && ${DEPLOY_SCRIPT} help "${@}"
         ;;
     *)
+        Project::info
         if [ ! -f "${DEPLOY_SCRIPT}" ]; then
             Registry::printHelp
             Console::error "${WARN}The project is not initialized yet. Run ${YELLOW}${SELF_SCRIPT} bootstrap${WARN} before any command.${NC}"

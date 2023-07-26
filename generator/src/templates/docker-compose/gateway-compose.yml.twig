@@ -1,0 +1,35 @@
+version: "3.7"
+
+services:
+  {{ internal_project_name }}_gateway:
+    container_name: {{ internal_project_name }}_gateway
+    image: ${SPRYKER_DOCKER_PREFIX}_gateway:${SPRYKER_DOCKER_TAG}
+    ports:
+{% for port in gatewayData.ports %}
+      - "{{ port }}:{{ port }}"
+{% endfor %}
+    networks:
+      {{ internal_project_name }}_private:
+        aliases:
+{% for host in gatewayData.hosts %}
+          - {{ host }}
+{% endfor %}
+      {{ internal_project_name }}_public:
+        aliases:
+{% for host in gatewayData.hosts %}
+          - {{ host }}
+{% endfor %}
+    environment:
+      SPRYKER_TESTING_ENABLE: ${SPRYKER_TESTING_ENABLE}
+{# todo: ???? #}
+      SPRYKER_XDEBUG_MODE_ENABLE: ${SPRYKER_XDEBUG_MODE_ENABLE}
+{# todo: need to resolve #}
+{% if docker['debug']['xdebug']['enabled'] is not defined or docker['debug']['xdebug']['enabled'] == true %}
+      SPRYKER_XDEBUG_ENABLE: ${SPRYKER_XDEBUG_ENABLE}
+{% endif %}
+    labels:
+      'spryker.app.name': {{ internal_project_name }}_gateway
+      'spryker.app.type': proxy
+      'spryker.project': ${SPRYKER_DOCKER_PREFIX}:${SPRYKER_DOCKER_TAG}
+
+{% include "docker-compose/components/network.yml.twig" with _context %}

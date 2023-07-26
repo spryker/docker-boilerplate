@@ -65,6 +65,13 @@ function Images::_buildApp() {
         --build-arg "SPRYKER_NPM_VERSION=${SPRYKER_NPM_VERSION}" \
         "${DEPLOYMENT_PATH}/context" 1>&2
 
+#    todo: avoid issue with mount: failed to compute cache key
+    local context=${SPRYKER_PROJECT_PATH}
+
+    if [ ${folder} != 'baked' ]; then
+        context="${DEPLOYMENT_PATH}/context"
+    fi
+
     docker build \
         -t "${appImage}" \
         -f "${DEPLOYMENT_PATH}/images/${folder}/application/Dockerfile" \
@@ -83,7 +90,7 @@ function Images::_buildApp() {
         --build-arg "SPRYKER_COMPOSER_AUTOLOAD=${SPRYKER_COMPOSER_AUTOLOAD}" \
         --build-arg "SPRYKER_BUILD_HASH=${SPRYKER_BUILD_HASH:-"current"}" \
         --build-arg "SPRYKER_BUILD_STAMP=${SPRYKER_BUILD_STAMP:-""}" \
-        . 1>&2
+        ${context} 1>&2
 
     docker build \
         -t "${localAppImage}" \
@@ -124,7 +131,7 @@ function Images::_buildApp() {
         --build-arg "SPRYKER_PIPELINE=${SPRYKER_PIPELINE}" \
         --build-arg "SPRYKER_BUILD_HASH=${SPRYKER_BUILD_HASH:-"current"}" \
         --build-arg "SPRYKER_BUILD_STAMP=${SPRYKER_BUILD_STAMP:-""}" \
-        .  1>&2
+        "${SPRYKER_PROJECT_PATH}" 1>&2
 
     if [ -n "${SPRYKER_XDEBUG_MODE_ENABLE}" ]; then
         docker build \

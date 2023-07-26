@@ -1,0 +1,23 @@
+{% for projectName, projectData in projectsData %}
+{% for serviceName, serviceData in projectData.services %}
+{% if serviceName not in sharedServices | keys  %}
+  {{ projectName }}-{{ serviceName }}-{{ serviceData['engine'] }}-data:
+    name: {{ projectName }}-{{ serviceName }}-{{ serviceData['engine'] }}-data
+    external: false
+{% endif %}
+{% endfor %}
+  {{ projectName }}_ssh_relay:
+    name: {{ projectName }}_ssh_relay
+    external: false
+  {{ projectName }}_logs:
+    name: {{ projectName }}_logs
+    external: false
+  {{ projectName }}_cli_history:
+    name: {{ projectName }}_cli_history
+    external: false
+{% if  projectData._mountMode != 'baked' and projectData._mountMode != 'native' %}
+  {{ projectName }}_data_sync:
+    name: {{ projectName }}_data_sync
+    external: true
+{% endif %}
+{% endfor %}

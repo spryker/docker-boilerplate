@@ -1,198 +1,35 @@
 version: "3.7"
 
-x-volumes:
-  &app-volumes
-  volumes:
-{% include "application-volumes.yml.twig" with _context %}
+{% include "docker-compose/application-volumes.yml.twig" with _context %}
+
+{#todo: cli BLACKFIRE_APM_ENABLED: ${BLACKFIRE_APM_ENABLED}#}
+{#todo: gateway BLACKFIRE_APM_ENABLED: ${BLACKFIRE_APM_ENABLED}#}
+{#todo: front BLACKFIRE_APM_ENABLED: ${BLACKFIRE_APM_ENABLED}#}
 
 services:
+{% include "docker-compose/gateway-compose.yml.twig" with _context %}
 
-  cli_ssh_relay:
-    image: spryker/socat:latest
-    privileged: true
-    command: UNIX-LISTEN:/tmp/ssh-relay/ssh-auth.sock,fork,unlink-early,user=1000,group=1000,mode=666 UNIX-CONNECT:/tmp/ssh-relay/input-ssh-auth.sock
-    networks:
-      - private
-    volumes:
-      - ssh-relay:/tmp/ssh-relay
-{%  if _platform == 'macos' %}
-      - /run/host-services/ssh-auth.sock:/tmp/ssh-relay/input-ssh-auth.sock
-{% else %}
-      - ${SSH_AUTH_SOCK_ON_HOST}:/tmp/ssh-relay/input-ssh-auth.sock
-{% endif %}
+{% include "docker-compose/shared-services-compose.yml.twig" with _context %}
 
-  cli:
-    image: ${SPRYKER_DOCKER_PREFIX}_run_cli:${SPRYKER_DOCKER_TAG}
-    networks:
-      - public
-      - private
-    labels:
-      'spryker.app.name': cli
-      'spryker.app.type': console
-      'spryker.project': ${SPRYKER_DOCKER_PREFIX}:${SPRYKER_DOCKER_TAG}
-    volumes:
-      - ssh-relay:/home/spryker/ssh-relay
-      - cli_history:/home/spryker/history:rw
-      - ./${DEPLOYMENT_PATH}/env/cli:/home/spryker/env:ro
-{% include "application-volumes.yml.twig" with _context %}
-    tty: true
-    environment:
-      SPRYKER_LOG_STDOUT: /tmp/stdout
-      SPRYKER_LOG_STDERR: /tmp/stderr
-      SPRYKER_XDEBUG_HOST_IP: ${SPRYKER_XDEBUG_HOST_IP}
-      BLACKFIRE_SERVER_ID: ${BLACKFIRE_SERVER_ID}
-      BLACKFIRE_SERVER_TOKEN: ${BLACKFIRE_SERVER_TOKEN}
-      BLACKFIRE_CLIENT_ID: ${BLACKFIRE_CLIENT_ID}
-      BLACKFIRE_CLIENT_TOKEN: ${BLACKFIRE_CLIENT_TOKEN}
-      BLACKFIRE_APM_ENABLED: ${BLACKFIRE_APM_ENABLED}
-      TIDEWAYS_APIKEY: ${TIDEWAYS_APIKEY}
-      TIDEWAYS_CLI_ENABLED: ${TIDEWAYS_CLI_ENABLED}
-      TIDEWAYS_ENVIRONMENT_NAME: ${TIDEWAYS_ENVIRONMENT_NAME}
-    command:
-      - "node"
-      - "/home/spryker/bin/cli-rpc.js"
-
-  frontend:
-    image: ${SPRYKER_DOCKER_PREFIX}_run_frontend:${SPRYKER_DOCKER_TAG}
-    networks:
-        - private
-    labels:
-      'spryker.app.name': frontend
-      'spryker.app.type': proxy
-      'spryker.project': ${SPRYKER_DOCKER_PREFIX}:${SPRYKER_DOCKER_TAG}
-    depends_on:
-{% for group in groups %}
-{% for applicationName, applicationData in group['applications'] %}
-{% if applicationData['application'] != 'static' %}
-      - {{ applicationName | lower }}
-{% endif %}
-{% endfor %}
-{% endfor %}
-    environment:
-      # TODO reconsider to use default in entrypoint
-      ALLOWED_IP: "127.0.0.1"
-      SPRYKER_TESTING_ENABLE: ${SPRYKER_TESTING_ENABLE}
-      BLACKFIRE_APM_ENABLED: ${BLACKFIRE_APM_ENABLED}
-{% if docker['debug']['xdebug']['enabled'] is not defined or docker['debug']['xdebug']['enabled'] == true %}
-      SPRYKER_XDEBUG_ENABLE: ${SPRYKER_XDEBUG_ENABLE}
-{% endif %}
-{% for group in groups %}
-{% for applicationName, applicationData in group['applications'] %}
-{% if applicationData['application'] != 'static' %}
-      SPRYKER_NGINX_CGI_HOST_{{ applicationName | upper }}: {{ applicationName | lower }}
-{% endif %}
-{% endfor %}
-{% endfor %}
-{% if _mountMode != 'baked' %}
-    volumes:
-{% if _mountMode == 'native' %}
-      - ./public:/data/public:ro
-{% else %}
-      - ${SPRYKER_DOCKER_PREFIX}_${SPRYKER_DOCKER_TAG}_data_sync:/data
-{% endif %}
-{% endif %}
-
-  gateway:
-    image: ${SPRYKER_DOCKER_PREFIX}_gateway:${SPRYKER_DOCKER_TAG}
-    ports:
-{% for port in _ports %}
-      - "{{ port }}:{{ port }}"
-{% endfor %}
-    depends_on:
-      - frontend
-{% for serviceName, serviceData in services %}
-      - {{ serviceName }}
-{% endfor %}
-    networks:
-      private:
-        aliases:
-{% for host in _hosts %}
-{% if host != 'localhost' %}
-          - {{ host }}
-{% endif %}
-{% endfor %}
-      public:
-        aliases:
-{% for host in _hosts %}
-{% if host != 'localhost' %}
-          - {{ host }}
-{% endif %}
-{% endfor %}
-    environment:
-      SPRYKER_TESTING_ENABLE: ${SPRYKER_TESTING_ENABLE}
-      SPRYKER_XDEBUG_MODE_ENABLE: ${SPRYKER_XDEBUG_MODE_ENABLE}
-      BLACKFIRE_APM_ENABLED: ${BLACKFIRE_APM_ENABLED}
-{% if docker['debug']['xdebug']['enabled'] is not defined or docker['debug']['xdebug']['enabled'] == true %}
-      SPRYKER_XDEBUG_ENABLE: ${SPRYKER_XDEBUG_ENABLE}
-{% endif %}
-    labels:
-      'spryker.app.name': gateway
-      'spryker.app.type': proxy
-      'spryker.project': ${SPRYKER_DOCKER_PREFIX}:${SPRYKER_DOCKER_TAG}
-
-{% for group in groups %}
-{% for applicationName, applicationData in group['applications'] %}
-{% if applicationData['application'] != 'static' %}
-
-{% include "application/" ~ (applicationData['application'] | lower) ~ ".yml.twig" with {
-    applicationName: applicationName,
-    applicationData: applicationData,
-    regionName: group['region'],
-    project: _context
+{% for projectName, projectData in projectsData %}
+{% include "docker-compose/project-compose.yml.twig" with {
+  'projectName': projectName,
+  'projectData': projectData,
+  'sharedServices': sharedServices,
+  'internal_project_name': internal_project_name,
 } %}
-{% endif %}
 {% endfor %}
-{% endfor %}
-{% for serviceName, serviceData in services %}
-{% set engine = serviceData['engine'] | lower %}
-{% set version = serviceData['version'] | default('default') %}
-{% include "service/" ~ engine ~ "/" ~ version ~ "/" ~  engine ~ ".yml.twig" with { project: _context, serviceName: serviceName, serviceData: serviceData, engine: engine, version: version } only %}
-{% endfor %}
-
-{% include "mount/" ~ _mountMode ~ ".yml.twig" ignore missing with _context %}
 
 volumes:
-{% for service, serviceData in services %}
-  {{ service }}-{{ serviceData['engine'] }}-data:
-    external: false
-{% endfor %}
+{% include "docker-compose/shared-services-volumes-compose.yml.twig" with _context %}
+{% include "docker-compose/project-volumes-compose.yml.twig" with {
+  'projectsData': projectsData,
+  'sharedServices': sharedServices,
+  'internal_project_name': internal_project_name,
+} %}
 
-  ssh-relay:
-      external: false
-  logs:
-    external: false
-  cli_history:
-    external: false
-{% if  _mountMode != 'baked' and _mountMode != 'native' %}
-  {{ namespace }}_{{ tag }}_data_sync:
-    external: true
-{% endif %}
+{% include "docker-compose/x-mutagen.yml.twig" with {
+  mutagenData: mutagenData
+} %}
 
-{% if  _mountMode == 'mutagen' %}
-x-mutagen:
-  sync:
-    defaults:
-      symlink:
-        mode: posix-raw
-      ignore:
-        paths:
-{% for rule in _syncIgnore %}
-          - '{{ rule | raw }}'
-{% endfor %}
-      permissions:
-        defaultFileMode: 0666
-        defaultDirectoryMode: 0777
-
-    {{ _syncSessionName }}:
-      alpha: ./
-      beta: volume://{{ namespace }}_{{ tag }}_data_sync
-      mode: two-way-resolved
-      configurationBeta:
-        permissions:
-          defaultOwner: id:1000
-          defaultGroup: id:1000
-
-{% endif %}
-networks:
-  public:
-  private:
+{% include "docker-compose/components/network.yml.twig" with _context %}

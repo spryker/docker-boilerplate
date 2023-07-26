@@ -1,9 +1,10 @@
-  {{ serviceName }}:
+  {{ serviceData.project_name ~ '_' ~ serviceName }}:
     image: spryker/jenkins:2.305
+    container_name: {{ serviceData.project_name ~ '_' ~ serviceName }}
     networks:
-      - private
+      - {{ internal_project_name }}_private
     labels:
-      'spryker.app.name': scheduler
+      'spryker.app.name': {{ serviceData.project_name ~ '_' ~ serviceName }}
       'spryker.app.type': services
       'spryker.project': ${SPRYKER_DOCKER_PREFIX}:${SPRYKER_DOCKER_TAG}
     healthcheck:
@@ -12,7 +13,7 @@
       timeout: 5s
       retries: 5
     environment:
-        JAVA_OPTS: '-Djenkins.install.runSetupWizard=false -Xms128m -Xmx128m -Dhudson.security.csrf.GlobalCrumbIssuerConfiguration.DISABLE_CSRF_PROTECTION={{ serviceData['csrf-protection-enabled'] ? 'false' : 'true' }}'
+      JAVA_OPTS: '-Djenkins.install.runSetupWizard=false -Xms128m -Xmx128m -Dhudson.security.csrf.GlobalCrumbIssuerConfiguration.DISABLE_CSRF_PROTECTION={{ serviceData['csrf-protection-enabled'] ? 'false' : 'true' }}'
     volumes:
-      - {{ serviceName }}-{{ serviceData['engine'] }}-data:/var/jenkins_home:rw
-      - ${DEPLOYMENT_PATH}/context/jenkins/spryker.sh:/usr/bin/spryker.sh:rw
+      - {{ serviceData.project_name ~ '-' ~ serviceName }}-{{ serviceData['engine'] }}-data:/var/jenkins_home:rw
+      - {{ serviceData.deployment_path }}/context/jenkins/spryker.sh:/usr/bin/spryker.sh:rw

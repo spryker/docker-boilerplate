@@ -17,11 +17,11 @@ function Command::prune() {
       fi
     done
 
-    Compose::down
+    Compose::command down
     sync clean # TODO deprecated, use Registry::Flow::addAfterDown in mounts
     Console::error "This will delete ALL docker images and volumes on the host."
-    docker image prune ${forceArg}
-    docker volume prune ${forceArg}
+    dropImages ${forceArg} # -a
+    docker volume prune ${forceArg} # -a
     docker system prune -a ${forceArg}
     docker builder prune -a ${forceArg}
 
@@ -33,6 +33,7 @@ function Command::prune() {
 }
 
 function Command::_prune_artifacts() {
+#    todo: per project
   local forceArg=${1}
 
   Command::_dropDirectory 'vendor/' ${forceArg}
@@ -42,6 +43,7 @@ function Command::_prune_artifacts() {
 }
 
 function Command::_dropDirectory() {
+#    todo: per project
   local directoryPath=${1}
   local forceArg=${2}
   local promptAnswer=${FALSE}
@@ -74,4 +76,30 @@ function Command::_dropDirectory() {
   fi
 
   echo "Total reclaimed space: ${dirSize}"
+}
+# todo: rename
+function dropImages() {
+  local forceArg=${1}
+  local projects=($(Project::getProjectList))
+
+  for projectName in "${projects[@]}" ; do
+    local imageIdList=($(docker images "${projectName}_*" --format "{{.ID}}"))
+
+    if [ -z "${imageIdList[*]}" ]; then
+      continue
+    fi
+
+    local uniqImageIdList=($(for imageId in "${imageIdList[@]}"; do echo "${imageId}"; done | sort -u))
+
+    docker image rm ${uniqImageIdList[*]} ${forceArg}
+  done
+
+  local nonameImageIdList=($(docker images -f 'dangling=true' -q))
+
+  if [ -n "${nonameImageIdList[*]}" ]; then
+    local uniqImageIdList=($(for imageId in "${nonameImageIdList[@]}"; do echo "${imageId}"; done | sort -u))
+    docker image rm ${uniqImageIdList[*]} ${forceArg}
+  fi
+
+  docker images --filter "reference=spryker_docker_sdk" --format "{{.ID}}" | xargs ${XARGS_NO_RUN_IF_EMPTY} docker rmi -f
 }

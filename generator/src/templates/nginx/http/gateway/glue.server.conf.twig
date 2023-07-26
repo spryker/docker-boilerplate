@@ -7,9 +7,9 @@
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
         proxy_set_header X-SCHEMA-BASE-URL $scheme://$host;
-        
+
         resolver 127.0.0.11 valid=10s;
-        set $cli_proxy_pass http://cli:9000/glueSchema/;
+        set $cli_proxy_pass http://{{ project.project_name }}_cli:9000/glueSchema/;
         proxy_pass $cli_proxy_pass;
     }
 {% endblock locations %}

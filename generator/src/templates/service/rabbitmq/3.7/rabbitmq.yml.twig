@@ -1,10 +1,11 @@
-  {{ serviceName }}:
+  {{ serviceData.project_name ~ '_' ~ serviceName }}:
     image: spryker/rabbitmq:3.7.14
+    container_name: {{ serviceData.project_name ~ '_' ~ serviceName }}
     hostname: {{ serviceName }} # RabbitMQ determines the cluster by its hostname
     networks:
-      - private
+      - {{ internal_project_name }}_private
     labels:
-      'spryker.app.name': broker
+      'spryker.app.name': {{ serviceData.project_name ~ '_' ~ serviceName }}
       'spryker.app.type': services
       'spryker.project': ${SPRYKER_DOCKER_PREFIX}:${SPRYKER_DOCKER_TAG}
     healthcheck:
@@ -16,4 +17,4 @@
       RABBITMQ_DEFAULT_USER: "{{ serviceData['api']['username'] }}"
       RABBITMQ_DEFAULT_PASS: "{{ serviceData['api']['password'] }}"
     volumes:
-      - {{ serviceName }}-{{ serviceData['engine'] }}-data:/var/lib/rabbitmq:rw
+      - {{ serviceData.project_name ~ '-' ~ serviceName }}-{{ serviceData['engine'] }}-data:/var/lib/rabbitmq:rw

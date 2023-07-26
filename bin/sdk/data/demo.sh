@@ -11,6 +11,7 @@ function Data::load() {
     local verboseOption=$([ "${VERBOSE}" == "1" ] && echo -n " -vvv" || echo -n '')
     local requireServices=(database broker search key_value_store)
 
+#    todo: refactoring
     for serviceName in "${requireServices[@]}" ; do
       Runtime::waitFor "${serviceName}"
     done
@@ -28,6 +29,7 @@ function Data::load() {
         SPRYKER_CURRENT_REGION="${REGION}"
         SPRYKER_CURRENT_STORE="${STORES[0]}"
 
+#        todo: refactoring
         if Service::isServiceExist "database" && [ -z "${force}" ] && Data::isLoaded; then
             continue
         fi
@@ -44,7 +46,7 @@ function Data::load() {
         fi
 
         Console::info "Loading demo data for ${SPRYKER_CURRENT_REGION} region."
-        Compose::ensureCliRunning
+        Compose::ensureCliRunning # todo: check this method
         Compose::exec "vendor/bin/install${verboseOption} -r ${SPRYKER_PIPELINE} -s clean-storage -s init-storage"
 
         if Service::isServiceExist "database"; then
@@ -54,12 +56,12 @@ function Data::load() {
         for store in "${STORES[@]}"; do
             SPRYKER_CURRENT_STORE="${store}"
             Console::info "Init storages for ${SPRYKER_CURRENT_STORE} store."
-            Compose::exec "vendor/bin/install${verboseOption} -r ${SPRYKER_PIPELINE} -s init-storages-per-store"
+            Command::cli "vendor/bin/install${verboseOption} -r ${SPRYKER_PIPELINE} -s init-storages-per-store"
         done
 
         SPRYKER_CURRENT_STORE="${STORES[0]}"
         local demoDataSection=${1:-demodata}
-        Compose::exec "vendor/bin/install${verboseOption} -r ${SPRYKER_PIPELINE} -s init-storages-per-region -s ${demoDataSection}"
+        Command::cli "vendor/bin/install${verboseOption} -r ${SPRYKER_PIPELINE} -s init-storages-per-region -s ${demoDataSection}"
     done
 
     Registry::Trap::releaseExitHook 'resumeScheduler'

@@ -1,9 +1,10 @@
-  {{ serviceName }}:
+  {{ serviceData.project_name ~ '_' ~ serviceName }}:
     image: mariadb:10.4
+    container_name: {{ serviceData.project_name ~ '_' ~ serviceName }}
     networks:
-      - private
+      - {{ internal_project_name }}_private
     labels:
-      'spryker.app.name': database
+      'spryker.app.name': {{ serviceData.project_name ~ '_' ~ serviceName }}
       'spryker.app.type': services
       'spryker.project': ${SPRYKER_DOCKER_PREFIX}:${SPRYKER_DOCKER_TAG}
     healthcheck:
@@ -15,5 +16,5 @@
       MYSQL_ROOT_PASSWORD: "{{ serviceData['root']['password'] }}"
       LANG: C.UTF-8
     volumes:
-      - {{ serviceName }}-{{ serviceData['engine'] }}-data:/var/lib/mysql:rw
-      - ./${DEPLOYMENT_PATH}/context/mysql/my.cnf:/etc/mysql/mariadb.conf.d/my.cnf:ro
+      - {{ serviceData.project_name ~ '-' ~ serviceName }}-{{ serviceData['engine'] }}-data:/var/lib/mysql:rw
+      - {{ serviceData.deployment_path }}/context/mysql/my.cnf:/etc/mysql/mariadb.conf.d/my.cnf:ro

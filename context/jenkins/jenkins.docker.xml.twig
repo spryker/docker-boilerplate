@@ -1,7 +1,6 @@
 {% extends 'jenkins-job.default.xml.twig' %}
 
 {% block setup %}{% endblock setup %}
-
 {% block command %}<![CDATA[
-{% if job.store is not empty and job.region is empty %}APPLICATION_STORE="{{ job.store }}" {%endif%}{% if job.region is not empty %}SPRYKER_CURRENT_REGION="{{ job.region }}" {%endif%}COMMAND="{{ job.command | raw }}{% if job.store is not empty and job.region is not empty %} --store={{ job.store }}{%endif%}" bash /usr/bin/spryker.sh
+PROJECT_NAME="{{ project_name }}" {% if job.store is not empty and job.region is empty %}APPLICATION_STORE="{{ job.store }}" {%endif%}{% if job.region is not empty %}SPRYKER_CURRENT_REGION="{{ job.region }}" {%endif%}COMMAND="{{ job.command | raw }}{% if job.store is not empty and job.region is not empty %} --store={{ job.store }}{%endif%}" bash /usr/bin/spryker.sh
 ]]>{% endblock command %}
