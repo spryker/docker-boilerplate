@@ -244,3 +244,16 @@ function Images::printAll() {
     printf "%s %s_frontend:%s\n" "frontend" "${SPRYKER_DOCKER_PREFIX}" "${tag}-frontend"
     printf "%s %s_pipeline:%s\n" "pipeline" "${SPRYKER_DOCKER_PREFIX}" "${tag}-pipeline"
 }
+
+function Images::assetsCopy() {
+    local appImage=${SPRYKER_DOCKER_PREFIX}_app:${SPRYKER_DOCKER_TAG}
+    local builderAssetsImage=$(Assets::getImageTag)
+
+    docker build \
+        -t "${appImage}" \
+        -f "${DEPLOYMENT_PATH}/images/baked/application-assets/Dockerfile" \
+        --progress="${PROGRESS_TYPE}" \
+        --build-arg "SPRYKER_PARENT_IMAGE=${appImage}" \
+        --build-arg "SPRYKER_ASSETS_BUILDER_IMAGE=${builderAssetsImage}" \
+        . 1>&2
+}

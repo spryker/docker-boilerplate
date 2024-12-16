@@ -72,9 +72,10 @@ function Command::export() {
         image | images)
             Console::verbose "${INFO}Build and export images${NC}"
             Images::buildApplication --force
-            Images::tagApplications "${tag}"
             Assets::build --force
+            Images::assetsCopy --force
             Images::buildFrontend --force
+            Images::tagApplications "${tag}"
             Images::tagFrontend "${tag}"
 
             if [ -n "${pushDestination}" ]; then
