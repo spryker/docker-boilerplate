@@ -6,6 +6,9 @@
 {% include "nginx/vhost.d/timeouts.conf.twig" with { timeout: timeout | default('1m') } %}
 {% endblock server %}
 {% block location %}
+        fastcgi_buffer_size 4k;
+        fastcgi_buffers 16 64k;
+        fastcgi_busy_buffers_size 128k;
 {{ parent() }}
         fastcgi_param SPRYKER_ZED_HOST "{{ (zedHost | split(':'))[0] | default('') }}";
         fastcgi_param SPRYKER_ZED_PORT "{{ (zedHost | split(':'))[1] | default(project['_defaultPort']) }}";

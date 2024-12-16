@@ -17,6 +17,7 @@
 
     location ~ \.php$ {
         include fastcgi.conf;
+
 {# Variable is necessary for https://www.nginx.com/blog/dns-service-discovery-nginx-plus/#domain-name-upstream-group #}
         set $upstream "{{ upstream }}";
         fastcgi_pass "$upstream";
