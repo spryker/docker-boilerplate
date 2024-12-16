@@ -139,6 +139,7 @@ readonly SPRYKER_DEFAULT_REGION="{{ regions | keys | first }}"
 {% endif %}
 readonly SPRYKER_FILE_MODE="{{ _fileMode }}"
 readonly SPRYKER_XDEBUG_MODE_ENABLE="{{ docker['debug']['xdebug']['enabled'] is not defined or docker['debug']['xdebug']['enabled'] == true ? '1' : '' }}"
+readonly SPRYKER_CUSTOM_XDEBUG_HOST_IP="{{ docker['debug']['xdebug']['custom_host_ip'] | default('') }}"
 readonly SPRYKER_SYNC_SESSION_NAME="{{ _syncSessionName }}"
 readonly SPRYKER_SYNC_VOLUME="${SPRYKER_DOCKER_PREFIX}_${SPRYKER_DOCKER_TAG}_data_sync"
 readonly DOCKER_COMPOSE_FILES_EXTRA="{{ docker['compose']['yamls'] | default([]) | join(' ') }}"
@@ -184,7 +185,7 @@ readonly SSH_AUTH_SOCK_IN_CLI="$([ -n "${SSH_AUTH_SOCK}" ] && [ -z "${COMPOSER_A
 
 # Global variables
 readonly USER_FULL_ID=$(Environment::getFullUserId)
-readonly SPRYKER_XDEBUG_HOST_IP=$(Environment::getHostIp)
+readonly SPRYKER_XDEBUG_HOST_IP=${SPRYKER_CUSTOM_XDEBUG_HOST_IP:-$(Environment::getHostIp)}
 readonly SECRETS_ENVIRONMENT=("COMPOSER_AUTH='${COMPOSER_AUTH}'")
 
 command=${1}

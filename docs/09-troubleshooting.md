@@ -271,6 +271,17 @@ docker:
       xdebug:
         enabled: true
 ```
+When working on Windows with WSL2, ensure the debug configuration is set up as follows:
+```yaml
+docker:
+  ...
+  debug:
+    enabled: true
+    xdebug:
+      enabled: true
+      custom_host_ip: host.docker.internal
+  ...
+```
 2. Ensure that IDE is listening to the port 9000.
 3. Check if the host is accessible from the container:
 ```bash
