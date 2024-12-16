@@ -92,7 +92,7 @@ upstream {{ upstream }}_xdebug {
 {% for serviceName, serviceData in services %}
 {% for endpoint, endpointData in serviceData['endpoints'] %}
 {% set protocol = endpointData['protocol'] | default('http') %}
-{% if protocol is same as ('http') %}
+{% if protocol is same as ('http') and serviceData['engine'] %}
 {% include "nginx/http/gateway/#{serviceData['engine']}.server.conf.twig" with {
     ssl: ssl,
     endpoint: endpoint,

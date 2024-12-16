@@ -646,6 +646,10 @@ function retrieveUniquePorts(array $projectData)
     $ports = [];
 
     foreach (retrieveEndpoints($projectData) as $endpoint => $endpointData) {
+        // set this property to true to prevent the port generation on the gateway service
+        if (isset($endpointData['custom']) && $endpointData['custom']) {
+            continue;
+        }
         $port = explode(':', $endpoint)[1];
         $ports[$port] = (int)$port;
     }
@@ -1065,7 +1069,7 @@ function retrieveStorageServices(array $services, string $engine = 'redis'): arr
 {
     $storageServices = [];
     foreach ($services as $serviceName => $serviceData) {
-        if ($serviceData['engine'] === $engine) {
+        if (($serviceData['engine'] ?? null) === $engine) {
             $storageServices[] = $serviceName;
         }
     }
