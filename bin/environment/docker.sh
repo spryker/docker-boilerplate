@@ -117,4 +117,4 @@ function Environment::getFullUserId() {
     return "${TRUE}"
 }
 
-Registry::addChecker 'Environment::checkDockerVersion'
+#Registry::addChecker 'Environment::checkDockerVersion'

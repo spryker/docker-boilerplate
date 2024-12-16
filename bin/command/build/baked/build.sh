@@ -21,6 +21,9 @@ function Command::build() {
             Assets::build --force
             Images::buildFrontend --force
             ;;
+        cli)
+            Images::buildApplication --force
+            ;;   
         '')
             Images::buildApplication --force
             Assets::build --force
