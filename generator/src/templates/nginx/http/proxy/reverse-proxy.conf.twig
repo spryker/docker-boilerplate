@@ -1,13 +1,14 @@
 {% block proxy %}
     {% for location, proxy_pass in endpointData['proxy'] %}
 location {{ location }} {
+        resolver ${SPRYKER_DNS_RESOLVER_IP} valid=1s;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Host $http_host;
 
-        proxy_pass {{ proxy_pass }};
+        set $proxy_pass_endpoint {{ proxy_pass }};
+        proxy_pass $proxy_pass_endpoint;
     }
-
     {% endfor %}
 {% endblock proxy %}

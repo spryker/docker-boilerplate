@@ -9,11 +9,12 @@ export SPRYKER_NGINX_CGI_{{ applicationName | upper}}=${SPRYKER_NGINX_CGI_{{ (ap
 {% endfor %}
 {% endfor %}
 
-envsubst '{{ envVariables | join(' ') }}' < /etc/nginx/template/default.conf.tmpl > /etc/nginx/conf.d/default.conf
-
 if [ -z "${SPRYKER_DNS_RESOLVER_IP}" ]; then
     export SPRYKER_DNS_RESOLVER_IP=$(grep "nameserver" /etc/resolv.conf | awk '{print $2}')
+    {% set envVariables = envVariables | merge(["\$SPRYKER_DNS_RESOLVER_IP"]) %}
 fi
+
+envsubst '{{ envVariables | join(' ') }}' < /etc/nginx/template/default.conf.tmpl > /etc/nginx/conf.d/default.conf
 
 envsubst '$SPRYKER_DNS_RESOLVER_IP ${SPRYKER_DNS_RESOLVER_FLAGS} {{ envVariables | join(' ') }}' < /etc/nginx/template/resolver.conf.tmpl > /etc/nginx/conf.d/00-resolver.conf
 
