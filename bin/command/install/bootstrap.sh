@@ -68,6 +68,7 @@ function Command::bootstrap() {
         rm -rf "${tmpDeploymentDir}"
     fi
     mkdir "${tmpDeploymentDir}"
+    mkdir "${tmpDeploymentDir}/project-deploy-templates"
 
     tmpDeploymentDir="$(cd "${tmpDeploymentDir}" >/dev/null 2>&1 && pwd)"
 
@@ -96,7 +97,7 @@ function Command::bootstrap() {
         cp ".known_hosts" "${tmpDeploymentDir}/"
     fi
     if [ -d "${projectDeployTemplatesDirectory}" ]; then
-        cp -rf "${projectDeployTemplatesDirectory}" "${tmpDeploymentDir}/project-deploy-templates"
+        cp -rf "${projectDeployTemplatesDirectory}/." "${tmpDeploymentDir}/project-deploy-templates"
     fi
     [ -f "./.env" ] && { mkdir -p "${tmpDeploymentDir}/env" && cp "./.env" "${tmpDeploymentDir}/env/.env"; } || { mkdir -p "${tmpDeploymentDir}/env" && touch "${tmpDeploymentDir}/env/.env"; }
 

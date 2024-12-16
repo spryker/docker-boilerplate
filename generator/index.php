@@ -28,6 +28,7 @@ $platform = getenv('SPRYKER_DOCKER_SDK_PLATFORM') ?: 'linux'; // Possible values
 $loaders = new ChainLoader([
     new FilesystemLoader(APPLICATION_SOURCE_DIR . DS . 'templates'),
     new FilesystemLoader($deploymentDir),
+    new FilesystemLoader($deploymentDir . DS . 'project-deploy-templates'),
 ]);
 $twig = new Environment($loaders);
 $nginxVarEncoder = new class() {
