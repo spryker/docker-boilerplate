@@ -16,6 +16,7 @@ This document describes configuration options of the services shipped with Spryk
 *     [WebDriver](#webdriver)
 *     [Dashboard](#dashboard)
 *     [Tideways](#tideways)
+*     [Local OpenTelemetry Stack](#grafana)
 
 
 ## Prerequisites
@@ -528,7 +529,7 @@ docker/sdk up
 
 By default, in the New Relic dashboard, the APM is displayed as `company-staging-newrelic-app`. To improve visibility, you may want to configure each application as a separate APM. For example, `YVES-DE (docker.dev)`.
 
-To do it, adjust the Monitoring service in `src/Pyz/Service/Monitoring/MonitoringDependencyProvider.php`:  
+To do it, adjust the Monitoring service in `src/Pyz/Service/Monitoring/MonitoringDependencyProvider.php`:
 
 ```php
 <?php declare(strict_types = 1);
@@ -648,6 +649,34 @@ tideways:
     apikey: {tideways_api_key}
     environment-name: {tideways_environment_name}
     cli-enabled: {true|false}
+```
+
+2. Bootstrap the docker setup and rebuild the application:
+```bash
+docker/sdk boot deploy.*.yml &&\
+docker/sdk up
+```
+
+## Local OpenTelemetry Stack
+
+The Local OpenTelemetry Stack is a powerful tool designed for real-time monitoring of Application Performance Monitoring (APM) locally. It allows you to track APM traces across all containers or specific ones running PHP applications.
+
+This stack integrates the following containers into your local environment:
+* tempo-init
+* tempo
+* collector
+* prometheus
+* grafana
+
+### Configuration
+
+1. Adjust your `deploy.*.yml` as follows:
+
+```yaml
+    grafana:
+        engine: otel-stack
+        endpoints:
+            grafana:
 ```
 
 2. Bootstrap the docker setup and rebuild the application:
