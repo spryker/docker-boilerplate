@@ -54,6 +54,10 @@ readonly DEPLOY_SCRIPT=${DESTINATION_DIR}/deploy
 Registry::Help::section 'Quick start:'
 Registry::Help::row "${SELF_SCRIPT} bootstrap && ${SELF_SCRIPT} up"
 
+# PAAS Cloud
+import command/paas/commands.sh
+import sdk/paas.sh
+
 command=$1
 shift || true
 
@@ -65,6 +69,10 @@ case "${command}" in
     boot | bootstrap)
         bash "${FRAMEWORK_CWD}/standalone/logo/spryker-sdk.sh" >&2
         Command::bootstrap "${@}"
+        ;;
+    paas | cloud)
+        bash "${FRAMEWORK_CWD}/standalone/logo/spryker-sdk.sh" >&2
+        Command::paas "${@}"
         ;;
     help | '')
         bash "${FRAMEWORK_CWD}/standalone/logo/spryker-sdk.sh" >&2
