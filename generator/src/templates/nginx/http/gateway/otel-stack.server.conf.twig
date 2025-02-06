@@ -1,0 +1,2 @@
+{% extends "nginx/http/gateway/server.conf.twig" %}
+{% block upstream %}{{ upstream }}:3000{% endblock upstream %}
