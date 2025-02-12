@@ -584,7 +584,7 @@ services:
       scheduler.spryker.local:
 
   mail_catcher:
-    engine: mailhog
+    engine: mailpit
     endpoints:
       mail.spryker.local:
  ```
@@ -979,7 +979,7 @@ A mail catcher *Service* used to catch all outgoing emails for development or te
 
 * Project-wide
 
-     - `mail_catcher: engine:` - possible value is `mailhog`.
+     - `mail_catcher: engine:` - possible values are `mailpit` or `mailhog`.
      - `mail_catcher: endpoints:`- defines the service's port and web interface that can be accessed via given endpoints.
 
 

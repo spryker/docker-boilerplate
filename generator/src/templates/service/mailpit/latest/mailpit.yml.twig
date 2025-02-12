@@ -1,0 +1,19 @@
+  {{ serviceName }}:
+    image: axllent/mailpit
+    networks:
+        - private
+    labels:
+        'spryker.app.name': mailcatcher
+        'spryker.app.type': services
+        'spryker.project': ${SPRYKER_DOCKER_PREFIX}:${SPRYKER_DOCKER_TAG}
+    environment:
+        MP_SMTP_BIND_ADDR: 0.0.0.0:1025
+        MP_SMTP_AUTH_ACCEPT_ANY: 1
+        MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    healthcheck:
+        test: [ "CMD", "nc", "-z", "localhost", "1025" ]
+        interval: 5s
+        timeout: 5s
+        retries: 5
+    volumes:
+        - {{ serviceName }}-{{ serviceData['engine'] }}-data:/maildir

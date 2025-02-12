@@ -11,6 +11,7 @@ This document describes configuration options of the services shipped with Spryk
 *     [Redis](#redis)
 *     [Redis GUI](#redis-gui)
 *     [MailHog](#mailhog)
+*     [Mailpit](#mailpit)
 *     [Blackfire](#blackfire)
 *     [New Relic](#new-relic)
 *     [WebDriver](#webdriver)
@@ -327,7 +328,7 @@ With the MailHog service, developers can:
 
 :::(Info) ()
 By default the following applies:
-*  `http://mail.demo-spryker.com/` is used to see incoming emails.
+*  `http://mail.spryker.local/` is used to see incoming emails.
 * Login is not required
 :::
 ### Configuration
@@ -338,6 +339,37 @@ services:
         ...
         mail_catcher:
                 engine: mailhog
+                endpoints:
+                          {custom_endpoint}:
+```
+2. Bootstrap the docker setup and rebuild the application:
+```bash
+docker/sdk boot deploy.*.yml &&\
+docker/sdk up
+```
+
+## Mailpit
+
+[Mailpit](https://github.com/axllent/mailpit) is a mail catcher service that is used with Spryker in Docker for Demo and Development environments. Developers use this email testing tool to catch and show emails locally without an SMTP (Simple Mail Transfer Protocol) server.
+
+With the Mailpit service, developers can:
+
+* configure an application to use Mailpit for SMTP delivery;
+* view messages in the web UI or retrieve them via JSON API.
+
+:::(Info) ()
+By default the following applies:
+*  `http://mail.spryker.local/` is used to see incoming emails.
+* Login is not required
+  :::
+### Configuration
+
+1. Adjust `deploy.*.yml` in the `services:` section to specify a custom endpoint:
+```yaml
+services:
+        ...
+        mail_catcher:
+                engine: mailpit
                 endpoints:
                           {custom_endpoint}:
 ```
@@ -528,7 +560,7 @@ docker/sdk up
 
 By default, in the New Relic dashboard, the APM is displayed as `company-staging-newrelic-app`. To improve visibility, you may want to configure each application as a separate APM. For example, `YVES-DE (docker.dev)`.
 
-To do it, adjust the Monitoring service in `src/Pyz/Service/Monitoring/MonitoringDependencyProvider.php`:  
+To do it, adjust the Monitoring service in `src/Pyz/Service/Monitoring/MonitoringDependencyProvider.php`:
 
 ```php
 <?php declare(strict_types = 1);

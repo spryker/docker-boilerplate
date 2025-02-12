@@ -15,4 +15,4 @@ services:
     scheduler:
         engine: jenkins
     mail_catcher:
-        engine: mailhog
+        engine: mailpit
